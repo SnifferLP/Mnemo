@@ -67,9 +67,14 @@ jobs:
 
       - name: Generate SHA-256 checksums
         run: |
-          find release -type f -not -name SHA256SUMS -print0 \
-            | sort -z \
-            | xargs -0 sha256sum > release/SHA256SUMS
+          (
+            cd release
+            find . -type f -not -name SHA256SUMS -print0 \
+              | sort -z \
+              | while IFS= read -r -d '' file; do
+                  printf '%s  %s\n' "$(sha256sum "$file" | cut -d' ' -f1)" "$(basename "$file")"
+                done
+          ) > release/SHA256SUMS
           cat release/SHA256SUMS
 
       - name: Attach artifacts to the GitHub Release
