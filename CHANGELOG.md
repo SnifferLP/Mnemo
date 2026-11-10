@@ -2,6 +2,18 @@
 
 All notable changes to Mnemo are documented here. The project follows [Semantic Versioning](https://semver.org/).
 
+## [1.2.1] - 2026-11-10
+
+### Changed
+
+- Reworked the German interface catalogue for consistent flashcard terminology, including “Lernset”, “Intervallwiederholung” and “beherrscht”, with clearer wording across the dashboard, library, settings, study modes and AI screens.
+- Updated the German translation tests and README test count to match the 20-test frontend suite.
+
+### Fixed
+
+- Corrected the German label for audio playback from “Spielen” to “Abspielen”.
+- Added the missing German confirmation shown when removing an AI provider, including the provider-name placeholder.
+
 ## [1.2.0] - 2026-11-10
 
 ### Added
