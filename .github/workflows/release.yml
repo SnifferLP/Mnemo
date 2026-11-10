@@ -1,0 +1,81 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.event.release.tag_name }}
+  cancel-in-progress: false
+
+jobs:
+  windows:
+    uses: ./.github/workflows/build-windows.yml
+
+  linux:
+    uses: ./.github/workflows/build-linux.yml
+
+  arch:
+    uses: ./.github/workflows/build-arch.yml
+
+  source:
+    name: Source archive
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Create source archive
+        run: ./packaging/arch/make-source-archive.sh
+      - name: Verify Arch source checksum
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          archive="packaging/arch/mnemo-${version}.tar.gz"
+          actual="$(sha256sum "$archive" | cut -d' ' -f1)"
+          expected="$(sed -n "s/^sha256sums=('\\([0-9a-f]\\{64\\}\\)')$/\\1/p" packaging/arch/PKGBUILD)"
+          if [ -z "$expected" ]; then
+            echo "error: packaging/arch/PKGBUILD does not pin a source archive checksum" >&2
+            exit 1
+          fi
+          if [ "$actual" != "$expected" ]; then
+            echo "error: source archive checksum $actual does not match PKGBUILD $expected" >&2
+            exit 1
+          fi
+
+      - name: Upload source archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: mnemo-source-archive
+          if-no-files-found: error
+          path: packaging/arch/mnemo-*.tar.gz
+
+  publish:
+    name: Publish release assets
+    needs: [windows, linux, arch, source]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: mnemo-*
+          path: release
+          merge-multiple: true
+
+      - name: Generate SHA-256 checksums
+        run: |
+          find release -type f -not -name SHA256SUMS -print0 \
+            | sort -z \
+            | xargs -0 sha256sum > release/SHA256SUMS
+          cat release/SHA256SUMS
+
+      - name: Attach artifacts to the GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.release.tag_name }}
+          files: release/**/*
+          fail_on_unmatched_files: true
+          generate_release_notes: false

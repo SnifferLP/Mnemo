@@ -1,6 +1,6 @@
 # Arch Linux packaging
 
-Mnemo's Arch package is built for **x86_64** only. The package installs the application binary, desktop entry, hicolor icons and license notices.
+Mnemo's Arch package is built for **x86_64**. The package installs the application binary, desktop entry, hicolor icons and license notices.
 
 ## Install a release package
 
@@ -21,14 +21,16 @@ The script creates a temporary package recipe and writes `mnemo-<version>-1-x86_
 
 ## Build from source
 
-`PKGBUILD` is the source-package recipe. It expects the release archive `mnemo-<version>.tar.gz` in this directory and verifies its SHA-256 checksum.
+`PKGBUILD` is the source-package recipe. It expects the release archive `mnemo-<version>.tar.gz` in this directory.
+
+Build dependencies: `nodejs`, `pnpm`, `rust` and `pkgconf`. Runtime dependencies are `webkit2gtk-4.1`, `gtk3`, `libsoup3` and `hicolor-icon-theme`.
 
 ```bash
 cd packaging/arch
 makepkg -si
 ```
 
-Build dependencies: `nodejs`, `pnpm`, `rust` and `pkgconf`. Runtime dependencies are `webkit2gtk-4.1`, `gtk3`, `libsoup3` and `hicolor-icon-theme`.
+### Source archive and checksum
 
 For a release, generate the archive from a clean committed tree:
 
@@ -36,6 +38,6 @@ For a release, generate the archive from a clean committed tree:
 ./packaging/arch/make-source-archive.sh
 ```
 
-Update `sha256sums` in `PKGBUILD` with the printed value, then verify the package in a clean environment. The source archive is a release asset; it is intentionally not committed.
+The script prints the SHA-256. Pin that value in `PKGBUILD` and commit the recipe change. The archive excludes `packaging/arch/PKGBUILD` on purpose: the recipe contains the archive checksum, so including the recipe would make the archive self-referential and make a stable checksum impossible.
 
-Until a GitHub Release asset URL is available, keep the archive next to `PKGBUILD`. After publishing, the recipe can point `source` at the release asset and should be rechecked against its checksum.
+The source archive is a release asset; it is intentionally not committed. The release workflow regenerates it from the tagged commit and attaches it alongside the binary packages.

@@ -13,11 +13,11 @@ Thanks for helping improve Mnemo. This project is a local-first desktop applicat
 
 Requirements:
 
-- Rust stable
+- Rust stable (use the MSVC toolchain on Windows)
 - Node.js 22 LTS or newer
 - pnpm 12.18.0
 - Linux: WebKitGTK 4.1, GTK 3, libsoup 3 and the Tauri build dependencies
-- Windows: WebView2 and the MSVC build tools
+- Windows: Visual Studio Build Tools with the **Desktop development with C++** workload and the WebView2 runtime
 
 ```bash
 pnpm install --frozen-lockfile
@@ -25,6 +25,14 @@ pnpm tauri dev
 ```
 
 Development builds use `<app data>/dev/` so they do not open the installed application's database.
+
+### Windows notes
+
+- Run the commands from a **Developer PowerShell** or another shell where the MSVC toolchain is available.
+- Use the `stable-msvc` Rust toolchain (`rustup default stable-msvc`).
+- `src-tauri/tauri.windows.conf.json` selects NSIS and the embedded WebView2 bootstrapper automatically on Windows.
+- API keys are DPAPI-protected on Windows. Tests for the key vault run in Windows CI; do not add a raw key file to a fixture or commit.
+- Paths with spaces and non-ASCII characters are supported. Please include them when manually checking import, export, media and backup flows.
 
 ## Checks before opening a pull request
 
@@ -41,7 +49,7 @@ cargo clippy --all-targets --all-features -- -D warnings
 cargo test --all-targets
 ```
 
-CI runs the frontend checks, Rust formatting, Clippy, Rust tests and Gitleaks. A pull request should not weaken or skip a failing check.
+CI runs the frontend checks on Linux, the Rust checks on Linux and Windows, the NSIS build on Windows, the Linux package builds and Gitleaks. A pull request should not weaken or skip a failing check.
 
 ## Code conventions
 
@@ -51,6 +59,7 @@ CI runs the frontend checks, Rust formatting, Clippy, Rust tests and Gitleaks. A
 - Use the existing UI primitives and design tokens instead of one-off styling.
 - Do not commit generated packages, build output, databases, `.env` files or local tool metadata.
 - Update documentation when behavior, storage, packaging or configuration changes.
+- Keep platform-specific code behind `cfg` attributes and preserve the shared code path wherever possible.
 
 ## Internationalization
 

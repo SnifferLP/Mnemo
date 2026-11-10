@@ -44,6 +44,13 @@ secrets.json
 *.sqlite3-wal
 backups/
 
+# Windows build and debug output
+*.pdb
+*.ilk
+.vs/
+*.suo
+*.user
+
 # Logs, crash dumps and temporary files
 *.log
 logs/

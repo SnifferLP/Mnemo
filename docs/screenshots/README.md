@@ -1,6 +1,6 @@
 # Screenshots
 
-Public screenshots are intentionally not included in the repository yet. Add clean, current captures before publishing the first release.
+Public screenshots are intentionally not included in the repository yet. Add clean, current captures before publishing a release that advertises screenshots.
 
 ## Requirements
 

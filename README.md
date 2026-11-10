@@ -1,77 +1,67 @@
-# Mnemo
+<p align="center">
+  <img src="assets/icon.png" width="88" height="88" alt="Mnemo application icon">
+</p>
 
-**A quieter way to remember.**
+<h1 align="center">Mnemo</h1>
 
-Mnemo is a local-first desktop study application for flashcards, spaced repetition and deliberate practice. It combines a fast native shell with a focused interface, keeps the library in a local SQLite database, and treats AI assistance as an optional feature rather than a requirement.
+<p align="center"><strong>A quieter way to remember.</strong></p>
 
-Mnemo is built with **Tauri 2**, **React**, **TypeScript** and **Rust**. There is no account system, no telemetry and no vendor-hosted service.
+<p align="center">
+  A local-first desktop study app for flashcards, spaced repetition and deliberate practice.<br>
+  Windows and Linux · optional AI · no account required
+</p>
 
-## Status
+---
 
-The current release is **1.1.0**. Linux x86_64 is the primary, tested platform. Windows is a secondary source target and is not covered by the release CI yet. macOS is not currently supported or tested.
+Mnemo keeps your study library on your own computer. It combines a native Tauri shell with a focused React interface, stores material in a local SQLite database, and treats AI assistance as an optional extra rather than a dependency.
 
-## Screenshots
+There is no account system, no telemetry and no vendor-hosted service. AI features call only the provider you configure, and everything else works offline.
 
-Clean product screenshots are intentionally not committed yet. Before the first public release, add sanitized captures to `docs/screenshots/` and link them here:
+## Preview
 
-| View | Suggested file |
-| --- | --- |
-| Dashboard | `docs/screenshots/dashboard.png` |
-| Study set overview | `docs/screenshots/set-overview.png` |
-| Flashcards / writing mode | `docs/screenshots/study.png` |
-| Statistics | `docs/screenshots/statistics.png` |
-| Settings and typography | `docs/screenshots/settings.png` |
+Mnemo uses a calm editorial interface with configurable typography, light and dark themes, and focused study modes.
 
-See [`docs/screenshots/README.md`](docs/screenshots/README.md) for capture requirements. Do not include real study content, names, provider keys or machine paths.
+The repository does not currently include sanitized product screenshots. Screenshot requirements and suggested captures are documented in [`docs/screenshots/README.md`](docs/screenshots/README.md). Please do not add screenshots containing real study content, personal names, API keys or machine-specific paths.
 
 ## Features
 
-### Library and organization
-- Study sets with descriptions, language pairs, tags, folders and favourites
-- Nested folders, search, sorting, duplication and progress reset
-- Rich cards with front/back text, explanation, hint, card type, image and audio attachments
-- CSV, TSV, JSON and Quizlet-style text import; CSV, TSV, JSON, Markdown and PDF export
-
-### Learning modes
-- **Flashcards** with keyboard controls and a 3D flip animation
-- **Adaptive learning** with a weighted queue for weak, overdue and new cards
-- **Writing** with normalized answers, configurable typo tolerance and optional AI grading
-- **Spaced repetition** using SM-2 scheduling
-- **Practice tests** with multiple choice, true/false, free text, fill-in-the-blank and matching questions
-- **Matching game** with a per-set best time
-
-### Insights
-- Due counts, daily goal, streak and recent activity
-- 7/30/90/365-day statistics, a 30-week heatmap, mastery distribution and per-set progress
-- Review accuracy and study time derived from local history
-
-### Optional AI
-- OpenAI, OpenRouter, Mistral, Gemini, Ollama and custom OpenAI-compatible endpoints
-- Card generation from text and TXT/MD/PDF/DOCX/PPTX/ODT/EPUB documents
-- Magic Notes summaries, definitions, cards, quizzes and study guides
-- Tutor chat with configurable set, gap and history context
-- API keys are encrypted at rest and never sent to the frontend
-
-### Interface
-- English and German UI with locale-aware dates and plurals
-- Editorial Serif and Modern Sans display-font options
-- Light/dark/system themes, accent colours and reduced-motion support
-- All required fonts are bundled and work offline
+- **Library management** — folders, tags, favourites, search, sorting, duplication and progress reset.
+- **Rich cards** — front and back text, explanations, hints, images and audio attachments.
+- **Study modes** — flashcards, adaptive learning, writing practice, SM-2 spaced repetition, practice tests and a matching game.
+- **Insights** — due counts, daily goals, streaks, activity ranges, a 30-week heatmap and per-set progress.
+- **Import and export** — CSV, TSV, JSON and Quizlet-style text import; CSV, TSV, JSON, Markdown and PDF export.
+- **Optional AI** — card generation, document summaries, study guides and tutor chat through OpenAI-compatible APIs, Gemini or local Ollama.
+- **Privacy by default** — local SQLite storage, encrypted provider keys and no analytics.
+- **English and German UI** — locale-aware dates, plural forms and bundled offline fonts.
 
 ## Supported platforms
 
 | Platform | Status | Distribution |
 | --- | --- | --- |
-| Linux x86_64 | Primary, tested | Arch package, `.deb`, AppImage |
-| Windows x86_64 | Secondary source target; not release-tested | Build locally with Tauri |
-| Linux aarch64 | Not currently released | Source build may work; no package is published |
-| macOS | Not supported or tested | — |
+| Windows 10/11 x64 | Supported | NSIS installer (`.exe`) |
+| Linux x86_64 (Arch) | Supported | `.pkg.tar.zst` |
+| Linux x86_64 (general) | Supported | AppImage |
+| Debian/Ubuntu x86_64 | Supported | `.deb` |
+| Linux aarch64 | Not officially released | Source build may work; no package is published |
+| macOS | Not supported | — |
 
-Prebuilt artifacts are produced for Linux x86_64 only. Do not assume that an untested platform build is supported just because Tauri can target it.
+Windows builds are produced on `windows-latest` in GitHub Actions. Linux checks and package builds run on Linux runners. No macOS artifact is published.
 
-## Installation
+## Download and installation
 
-Download release assets from the repository's **Releases** page. Generated packages are not committed to this repository.
+Download the latest artifacts from the repository's **Releases** page. Generated packages are never committed to the repository.
+
+### Windows 10 and 11
+
+1. Download `Mnemo_<version>_x64-setup.exe`.
+2. Run the installer. It installs for the current user, so administrator rights are not normally required.
+3. Launch **Mnemo** from the Start Menu or the installer's finish page.
+
+The installer adds a Start Menu entry, uses the Mnemo application icon and registers an uninstaller. Uninstall from **Settings → Apps → Installed apps → Mnemo**, or from the Start Menu shortcut's context menu.
+
+The installer embeds the Microsoft WebView2 bootstrapper. Windows 11 and current Windows 10 installations normally already have WebView2. If it is missing, the installer downloads it from Microsoft during installation; that step requires an internet connection. No Rust, Node.js, pnpm or other development tools are required to install or run Mnemo.
+
+> **Windows code signing:** the current installer is **not code-signed**. Windows SmartScreen may show an "Unknown publisher" warning. Verify that you downloaded the file from this repository's Releases page. Signing may be added in a future release; unsigned artifacts are never presented as signed.
 
 ### Arch Linux
 
@@ -79,11 +69,7 @@ Download release assets from the repository's **Releases** page. Generated packa
 sudo pacman -U mnemo-<version>-1-x86_64.pkg.tar.zst
 ```
 
-### Debian / Ubuntu
-
-```bash
-sudo apt install ./Mnemo_<version>_amd64.deb
-```
+The package installs the binary, desktop entry, hicolor icons and license notices.
 
 ### AppImage
 
@@ -92,51 +78,127 @@ chmod +x Mnemo_<version>_amd64.AppImage
 ./Mnemo_<version>_amd64.AppImage
 ```
 
-The AppImage requires FUSE 2. Without FUSE, run it with `--appimage-extract-and-run`.
+The AppImage needs FUSE 2. If FUSE is unavailable, run it with:
 
-## Build from source
+```bash
+./Mnemo_<version>_amd64.AppImage --appimage-extract-and-run
+```
+
+### Debian and Ubuntu
+
+```bash
+sudo apt install ./Mnemo_<version>_amd64.deb
+```
+
+The Debian package depends on the standard WebKitGTK 4.1 runtime libraries provided by your distribution.
+
+## Getting started
+
+1. Launch Mnemo. A new, empty library is created on first start; no demo data is inserted.
+2. Create a study set, or import one from CSV, TSV, JSON or plain text.
+3. Add cards with front/back text, an explanation, a hint and optional media.
+4. Choose a study mode and start learning. Flashcards and keyboard shortcuts work without any AI configuration.
+5. Open **Settings → Data** to see the exact database, media and backup locations on your machine.
+
+Backups created from Settings are ordinary SQLite copies. They are **not encrypted**; store them somewhere you trust.
+
+## AI configuration
+
+AI is optional. Without a provider, the library, import/export, flashcards, spaced repetition, tests, statistics and backups all work normally.
+
+1. Open **Settings → AI providers → Add provider**.
+2. Select a preset or **Custom**.
+3. Enter the base URL and model.
+4. Paste your own API key. For local Ollama, leave the key empty.
+5. Test the connection and optionally mark the provider as default.
+
+| Provider type | Example base URL |
+| --- | --- |
+| OpenAI | `https://api.openai.com/v1` |
+| OpenRouter | `https://openrouter.ai/api/v1` |
+| Mistral | `https://api.mistral.ai/v1` |
+| Gemini | Google Gemini API endpoint |
+| Ollama (local) | `http://localhost:11434/v1` |
+| Custom OpenAI-compatible | Your provider's `/v1` endpoint |
+
+Provider keys are encrypted at rest with AES-256-GCM. The master key stays on the local machine: on Linux it is written with mode `0600`; on Windows it is protected with the current user's DPAPI credentials. Keys are never sent to the frontend or written to logs.
+
+AI requests are sent directly to the provider you choose, under that provider's privacy terms. Mnemo does not proxy them through a project-operated server.
+
+## Privacy and local data
+
+Mnemo has no accounts, telemetry, analytics, cloud sync or bundled API keys. The application creates its own data directory on first launch.
+
+| Data | Default location |
+| --- | --- |
+| Linux data directory | `$XDG_DATA_HOME/com.mnemo.study/` or `~/.local/share/com.mnemo.study/` |
+| Windows data directory | `%APPDATA%\com.mnemo.study\` |
+| Database | `<data dir>/mnemo.db` (SQLite, WAL mode) |
+| Media attachments | `<data dir>/media/` |
+| API-key vault | `<data dir>/secure.key` |
+| Development builds | `<data dir>/dev/` |
+
+On Linux, `secure.key` is created with `0600` permissions. On Windows, the file is wrapped with DPAPI and can only be decrypted by the same Windows user profile. Moving the data directory to another Windows account requires removing `secure.key` and re-entering provider keys; the database and study content are unaffected.
+
+To remove all local data, quit Mnemo and delete its data directory. Uninstalling the application does not delete the data directory automatically.
+
+## System requirements
+
+- **Windows:** Windows 10 or Windows 11, x64, Microsoft WebView2 Runtime (installed automatically if missing and an internet connection is available).
+- **Linux:** x86_64 distribution with WebKitGTK 4.1, GTK 3 and libsoup 3; AppImage users also need FUSE 2.
+- A local SQLite-capable filesystem. Network shares are not recommended for the live database.
+- AI features require network access to the configured provider. Ollama can run entirely locally.
+
+## Development and build
 
 ### Requirements
 
-- Rust stable (`rustup` recommended)
+- Rust stable (MSVC toolchain on Windows)
 - Node.js 22 LTS or newer
-- pnpm 12.18.0 (also declared in `package.json`)
+- pnpm **12.18.0** (also declared in `package.json`)
+- Windows: Visual Studio Build Tools with the **Desktop development with C++** workload and WebView2
 - Linux: WebKitGTK 4.1, GTK 3, libsoup 3 and the usual Tauri build dependencies
 
+Install the Linux dependencies on Debian/Ubuntu:
+
 ```bash
-# Debian / Ubuntu
 sudo apt install libwebkit2gtk-4.1-dev libgtk-3-dev libsoup-3.0-dev \
   libayatana-appindicator3-dev librsvg2-dev patchelf build-essential \
   curl file pkg-config
+```
 
-# Fedora
-sudo dnf install webkit2gtk4.1-devel gtk3-devel libsoup3-devel \
-  librsvg2-devel openssl-devel patchelf
+On Arch Linux:
 
-# Arch Linux
+```bash
 sudo pacman -S webkit2gtk-4.1 gtk3 libsoup3 librsvg patchelf base-devel
 ```
 
-Windows needs WebView2, the MSVC build tools and the Rust MSVC toolchain. Windows builds are a secondary target and are not verified by the project CI.
+On Windows, install [Rust](https://rustup.rs/), Node.js 22 and pnpm, then make sure the MSVC Rust toolchain is active:
 
-### Development
+```powershell
+rustup default stable-msvc
+corepack enable
+corepack prepare pnpm@12.18.0 --activate
+```
+
+### Run locally
 
 ```bash
-git clone <repository-url>
-cd mnemo
+git clone https://github.com/SnifferLP/Mnemo.git
+cd Mnemo
 pnpm install --frozen-lockfile
 pnpm tauri dev
 ```
 
 Vite serves the UI on `http://127.0.0.1:1420`; Tauri opens the native window. Development builds use a separate `dev` data directory so they cannot modify an installed library.
 
-### Production build
+### Build installers
 
 ```bash
 pnpm tauri build
 ```
 
-On Linux this produces `.deb` and `.AppImage` bundles under `src-tauri/target/release/bundle/`. On Windows, pass the desired Tauri bundle target explicitly; no Windows artifacts are published by this repository yet.
+On Linux this produces `.deb` and `.AppImage` bundles under `src-tauri/target/release/bundle/`. On Windows, `src-tauri/tauri.windows.conf.json` selects NSIS and produces an installer under `src-tauri/target/release/bundle/nsis/`.
 
 ### Arch Linux packaging
 
@@ -147,73 +209,11 @@ pnpm tauri build --no-bundle
 ./packaging/arch/build-binary-package.sh
 ```
 
-`packaging/arch/PKGBUILD` is the source-package recipe. It expects the release source archive next to the PKGBUILD; maintainers generate and attach that archive to a release. See [`packaging/arch/README.md`](packaging/arch/README.md) and [`docs/RELEASING.md`](docs/RELEASING.md).
+See [`packaging/arch/README.md`](packaging/arch/README.md) and [`docs/RELEASING.md`](docs/RELEASING.md) for source-package and release details.
 
-## AI provider configuration
+## Tests
 
-AI is optional. Without a provider, the library, study modes, statistics, import/export and backups all work normally.
-
-1. Open **Settings → AI providers → Add provider**.
-2. Select a preset or **Custom**.
-3. Enter the base URL and model.
-4. Paste your own API key. For local Ollama, leave the key empty and use `http://localhost:11434/v1`.
-5. Test the connection and mark the provider as default.
-
-Mnemo sends a request only when you trigger generation, grading, model listing or chat. AI-generated material is requested in the language you specify and is independent of the interface language.
-
-## Privacy and local data
-
-Mnemo has no accounts, telemetry, analytics, cloud sync or bundled API keys. The application creates its own data directory on first launch and inserts no demo data.
-
-| Data | Default location |
-| --- | --- |
-| Linux data directory | `$XDG_DATA_HOME/com.mnemo.study/` or `~/.local/share/com.mnemo.study/` |
-| Windows data directory | `%APPDATA%\com.mnemo.study\` |
-| Database | `<data dir>/mnemo.db` (SQLite, WAL mode) |
-| Media attachments | `<data dir>/media/` |
-| API-key vault | `<data dir>/secure.key` (mode `0600` on Unix) |
-| Development builds | `<data dir>/dev/` |
-
-The exact active paths are shown in **Settings → Data**.
-
-Provider API keys are encrypted with AES-256-GCM before being written to SQLite. The master key is stored in `secure.key`; it never enters the frontend and is not logged. Backups created from Settings are ordinary SQLite copies and are **not** encrypted, so store them accordingly.
-
-When you use an AI provider, the selected prompt and context are sent directly to that provider under its own privacy terms. Mnemo does not proxy requests through a project-operated server.
-
-To remove all local data, quit Mnemo and delete its data directory.
-
-## Architecture
-
-```text
-src-tauri/
-  src/
-    lib.rs              Tauri setup, app-data directory, command registration
-    db.rs               SQLite pool, WAL, migrations
-    crypto.rs           AES-256-GCM key vault for provider keys
-    settings.rs         persisted preferences and sanitization
-    learning.rs         queue selection, answer checking, test generation
-    spaced_repetition.rs SM-2 scheduling and mastery
-    import.rs           CSV/TSV/JSON/Quizlet and document extraction
-    export.rs           CSV/TSV/JSON/Markdown and PDF generation
-    statistics.rs       dashboard, ranges and aggregates
-    ai/                 provider client, prompts and response parsing
-    services/           sets, cards, folders, media, documents, providers
-    commands/           thin Tauri command boundary
-
-  migrations/           append-only SQL migrations
-
-src/
-  lib/api.ts            typed Tauri invoke wrappers
-  lib/types.ts          TypeScript mirrors of Rust models
-  i18n/                 centralized English-key / German catalog runtime
-  components/           UI primitives, charts, layout and editors
-  pages/                library, authoring, AI, statistics, settings, study modes
-  context/              settings, theme, font and language application
-```
-
-All mutations are validated in Rust. The frontend only renders state returned by Tauri commands. SQLite foreign keys cascade deletes, and every card receives a progress row so scheduling state is always defined.
-
-## Testing
+Run the same checks locally that CI runs:
 
 ```bash
 pnpm typecheck
@@ -226,43 +226,31 @@ cargo clippy --all-targets --all-features -- -D warnings
 cargo test --all-targets
 ```
 
-The frontend suite covers learning-round state, settings merging and translation catalogues. Rust tests cover SM-2 transitions, answer normalization, import/export, AI request construction, settings sanitization, migrations, CRUD, statistics, persistence across database reopen and database upgrade behavior.
+The current local suite contains **23 Rust unit tests**, **9 Rust integration tests** and **19 frontend tests**. The frontend suite covers learning-round state, settings merging and translation catalogues. Rust tests cover SM-2 scheduling, answer normalization, import/export, AI request construction, settings sanitization, database migrations, CRUD, statistics, persistence and upgrade behavior.
 
-## Troubleshooting
+GitHub Actions also runs the Rust suite on Windows, builds the NSIS installer, builds Linux AppImage/`.deb` bundles and builds the Arch package. A successful compile is not a substitute for manual testing of Windows installation, display scaling, audio playback and other interactive behavior; see [`docs/RELEASING.md`](docs/RELEASING.md) for the manual QA checklist.
 
-**The Linux build cannot find WebKitGTK.** Install the development packages listed above; the runtime package alone is not enough.
+## License and third-party licenses
 
-**The AppImage does not start.** Install FUSE 2, or run `./Mnemo_<version>_amd64.AppImage --appimage-extract-and-run`.
+Mnemo's source code is released under the **MIT License**; see [`LICENSE`](LICENSE).
 
-**AI requests fail with 401/403.** Check the provider key, base URL and model. Keys are not shown again after saving; replace the key if necessary.
+Bundled fonts are licensed separately under the **SIL Open Font License 1.1**. Third-party components, including `windows-sys`, Tauri, React and cryptography crates, are documented in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md). The MIT license does not replace those terms.
 
-**AI requests fail with a connection error.** Confirm that a local Ollama server is running, or that the provider endpoint is reachable from this machine.
+## Reporting bugs and getting support
 
-**PDF export loses non-Latin characters.** The built-in PDF writer uses Helvetica/WinAnsi. Use JSON or Markdown for full Unicode, or print from a browser.
+- Search existing issues before opening a new one.
+- Use the [bug report template](.github/ISSUE_TEMPLATE/bug_report.yml) and include the Mnemo version, platform, steps to reproduce and relevant logs with secrets and personal data removed.
+- For suspected security vulnerabilities, follow [`SECURITY.md`](SECURITY.md) and use the repository's private **Report a vulnerability** flow. Do not open a public issue for a vulnerability.
+- Feature requests and general questions are welcome through the repository's issue tracker.
 
-**A scanned PDF has no text.** OCR is not bundled. Paste the text or use a searchable PDF.
-
-**The window is empty after a database restore.** Restore only a Mnemo SQLite backup, keep the app closed during replacement, and relaunch. The original database is retained as a timestamped backup.
+When reporting a Windows problem, please state whether it occurs with the installed NSIS build or a local development build, and whether WebView2 is installed.
 
 ## Known limitations
 
 - No cloud sync, sharing links, mobile app or multi-user accounts.
-- AI quality and availability depend on the configured provider.
-- AI grading costs provider tokens and is off by default.
-- Scanned documents require external OCR.
-- PDF export uses a limited built-in font encoding.
-- Test papers are stored locally without a separate answer-key permission model; Mnemo is a single-user desktop app.
-- Windows is a secondary target without published artifacts or CI coverage.
-- macOS is not currently supported.
-
-## Contributing
-
-Contributions are welcome. Read [`CONTRIBUTING.md`](CONTRIBUTING.md) before opening a pull request. By participating, you agree to follow the [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
-
-For security issues, use the private reporting process in [`SECURITY.md`](SECURITY.md), not a public issue.
-
-## License
-
-Mnemo's source code is released under the **MIT License**; see [`LICENSE`](LICENSE).
-
-Bundled fonts are licensed separately under the **SIL Open Font License 1.1**. Third-party components and their licenses are documented in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md). The MIT license does not replace those terms.
+- The Windows installer is currently unsigned.
+- AI quality and availability depend on the configured provider; AI grading is off by default and consumes provider tokens.
+- Scanned PDFs require external OCR.
+- PDF export uses a limited built-in font encoding; use JSON or Markdown for full Unicode.
+- Tests and study material are stored locally without a separate answer-key permission model; Mnemo is a single-user desktop application.
+- macOS is not supported.

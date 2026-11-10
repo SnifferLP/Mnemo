@@ -34,7 +34,7 @@ body:
     id: version
     attributes:
       label: Mnemo version
-      placeholder: "1.1.0"
+      placeholder: "1.2.0"
     validations:
       required: true
   - type: dropdown
@@ -46,6 +46,7 @@ body:
         - Linux — AppImage
         - Linux — Debian package
         - Linux — source build
+        - Windows — NSIS installer
         - Windows — source build
         - Other
     validations:

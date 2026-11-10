@@ -65,6 +65,18 @@ jobs:
         working-directory: src-tauri
         run: cargo test --all-targets
 
+  windows:
+    name: Windows checks and installer
+    uses: ./.github/workflows/build-windows.yml
+
+  linux-bundles:
+    name: Linux package bundles
+    uses: ./.github/workflows/build-linux.yml
+
+  arch-package:
+    name: Arch package
+    uses: ./.github/workflows/build-arch.yml
+
   secret-scan:
     name: Secret scan
     runs-on: ubuntu-24.04

@@ -2,6 +2,33 @@
 
 All notable changes to Mnemo are documented here. The project follows [Semantic Versioning](https://semver.org/).
 
+## [1.2.0] - 2026-11-10
+
+### Added
+
+- Windows 10/11 x64 support with an NSIS installer, Start Menu entry, application icon and uninstaller.
+- Current-user Windows installer setup, so administrator rights are not normally required.
+- Windows DPAPI protection for the local API-key vault, with an atomic migration from the pre-1.2.0 raw key format.
+- Windows CI that runs frontend and Rust checks, builds the NSIS installer and uploads it as an artifact.
+- Multi-platform release automation for Windows, Linux and Arch artifacts, including a source archive and SHA-256 checksums.
+- Shared bundle metadata for publisher, copyright and project homepage.
+
+### Changed
+
+- Mnemo is now documented and packaged as a Windows and Linux desktop application.
+- The README has been reorganized around installation, platform support, privacy, development and support.
+- Linux bundle configuration remains the default for Linux builds; Windows-specific packaging lives in `tauri.windows.conf.json`.
+- Arch source archives exclude the self-referential `PKGBUILD`; the recipe checksum is pinned to the generated archive.
+- `.gitignore` now covers Windows debugger and Visual Studio output.
+
+### Security
+
+- Provider API keys remain encrypted at rest with AES-256-GCM and are never exposed to the frontend.
+- Windows stores the master key as a DPAPI-protected blob bound to the current user.
+- Linux continues to write `secure.key` with mode `0600`.
+- Windows installers are currently unsigned and are documented as such. No unsigned artifact is presented as signed.
+- No project API keys, telemetry or cloud account are required.
+
 ## [1.1.0] - 2026-11-10
 
 ### Added

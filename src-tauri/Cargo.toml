@@ -1,6 +1,6 @@
 [package]
 name = "mnemo"
-version = "1.1.0"
+version = "1.2.0"
 description = "Local-first desktop study platform with flashcards and spaced repetition"
 authors = ["Mnemo contributors"]
 edition = "2021"
@@ -36,3 +36,10 @@ unicode-normalization = "0.1.26"
 uuid = { version = "1.20.0", features = ["v4", "serde"] }
 zip = "4.2.0"
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "charset"] }
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = [
+  "Win32_Foundation",
+  "Win32_Security_Cryptography",
+  "Win32_Storage_FileSystem",
+] }

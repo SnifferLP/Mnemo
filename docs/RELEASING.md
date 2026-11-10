@@ -1,6 +1,6 @@
 # Releasing Mnemo
 
-This document is for maintainers preparing a public release. Do not commit generated packages or binaries; attach them to a GitHub Release instead.
+This document is for maintainers preparing a public release. Generated packages and binaries are release assets, not committed files. The repository's release workflow builds Windows, Linux and Arch artifacts when a GitHub Release is published.
 
 ## 1. Set the version
 
@@ -12,7 +12,7 @@ Update the version consistently in:
 - `src-tauri/Cargo.lock` (the `mnemo` package entry)
 - `packaging/arch/PKGBUILD`
 - `packaging/arch/build-binary-package.sh`
-- `CHANGELOG.md` and user-facing release notes
+- `CHANGELOG.md` and the GitHub Release notes
 
 Keep `pnpm-lock.yaml` unchanged unless dependencies changed.
 
@@ -32,7 +32,24 @@ cargo test --all-targets
 
 Also verify a clean checkout builds, confirm no database or secret is present, and inspect `git status` for generated files.
 
-## 3. Build Linux artifacts
+## 3. Build the artifacts
+
+### Windows
+
+The supported build is Windows x64 with the MSVC Rust toolchain and Node.js 22. The platform configuration selects NSIS and the embedded WebView2 bootstrapper:
+
+```powershell
+pnpm install --frozen-lockfile
+pnpm tauri build --bundles nsis
+```
+
+Expected bundle:
+
+- `src-tauri/target/release/bundle/nsis/Mnemo_<version>_x64-setup.exe`
+
+The installer is **unsigned**. Do not describe it as signed. SmartScreen may warn users about an unknown publisher.
+
+### Linux AppImage and Debian package
 
 ```bash
 pnpm tauri build
@@ -43,7 +60,7 @@ Expected bundles:
 - `src-tauri/target/release/bundle/appimage/Mnemo_<version>_amd64.AppImage`
 - `src-tauri/target/release/bundle/deb/Mnemo_<version>_amd64.deb`
 
-Build the Arch binary package from the release binary:
+### Arch package
 
 ```bash
 pnpm tauri build --no-bundle
@@ -52,7 +69,7 @@ pnpm tauri build --no-bundle
 
 This writes `packaging/arch/mnemo-<version>-1-x86_64.pkg.tar.zst`.
 
-## 4. Create the source archive
+### Source archive
 
 From a clean committed tree:
 
@@ -60,11 +77,24 @@ From a clean committed tree:
 ./packaging/arch/make-source-archive.sh
 ```
 
-The script creates `packaging/arch/mnemo-<version>.tar.gz` and prints its SHA-256. Update `sha256sums` in `packaging/arch/PKGBUILD` to that value. The archive is a release asset, not a committed source file.
+The script creates `packaging/arch/mnemo-<version>.tar.gz` and prints its SHA-256. The archive deliberately excludes `packaging/arch/PKGBUILD`, because the recipe contains the archive's checksum and including it would make the archive self-referential. Pin `sha256sums` in `PKGBUILD` to the printed value and commit that change. The archive itself remains a release asset and is not committed.
 
-If the repository URL is known, update the `source` line in `PKGBUILD` to the release-asset URL after the release exists, then re-check the checksum. Until then, the PKGBUILD expects the archive next to it.
+The release workflow regenerates the source archive from the tagged commit and attaches it, together with a `SHA256SUMS` file.
 
-## 5. Verify artifacts
+## 4. Automated GitHub Release workflow
+
+Publishing a GitHub Release triggers `.github/workflows/release.yml`. It runs these jobs in parallel:
+
+1. Windows checks and NSIS installer.
+2. Linux AppImage and `.deb`.
+3. Arch package.
+4. Source archive.
+
+After all four succeed, the publish job downloads the artifacts, writes `SHA256SUMS`, and attaches the files to the existing release. The workflow does not create the release or tag.
+
+Create the tag and release only after the version commit is on `main` and CI is green. The release must be published rather than left as a draft to start the workflow.
+
+## 5. Verify artifacts and manual QA
 
 ```bash
 sha256sum \
@@ -74,24 +104,45 @@ sha256sum \
   packaging/arch/mnemo-<version>.tar.gz
 ```
 
-- Install the Arch package and the `.deb` on a clean system or container where practical.
-- Run the AppImage.
-- Confirm the version in the window, package metadata and About/Data settings.
-- Check the bundled fonts render offline.
+### Automated coverage
 
-## 6. Publish the GitHub Release
+CI checks:
 
-1. Create a tag `v<version>` from the reviewed commit.
-2. Create a GitHub Release with user-facing notes from `CHANGELOG.md`.
-3. Attach the AppImage, Debian package, Arch package and source archive.
-4. Include the SHA-256 checksums in the release notes.
-5. Do not upload databases, `.env` files, provider keys or local build directories.
+- TypeScript, frontend tests and production frontend build on Linux and Windows.
+- Rust formatting, Clippy and Rust tests on Linux and Windows.
+- NSIS installer creation and artifact upload.
+- Linux AppImage and `.deb` creation.
+- Arch package creation.
+- Gitleaks secret scanning.
 
-Only publish Windows artifacts if they were built and tested on Windows. macOS is not a supported target.
+### Manual Windows QA checklist
 
-## 7. Post-release checks
+A Windows CI runner proves compilation, tests and installer creation. It does **not** prove interactive desktop behavior. Before calling a Windows release fully verified, check on a real Windows 10 or Windows 11 x64 machine:
+
+- Fresh per-user installation, Start Menu shortcut, icon and uninstall entry.
+- First launch, database creation, and relaunch with existing data.
+- Saving, editing and removing an API key; protected `secure.key` survives a restart.
+- Import and export with paths containing spaces and non-ASCII characters.
+- Backup and restore, keeping the app closed during restore.
+- Media attachment, image display and audio playback.
+- Window sizing, maximizing and Windows display scaling (100%, 125%, 150%).
+- Keyboard shortcuts, including Ctrl combinations.
+- Multiple app instances and database access behavior.
+- AI provider connection, model listing and error messages with a test provider.
+
+Record what was tested and on which Windows version. If a check was not performed, state that plainly in the release notes.
+
+### Manual Linux QA checklist
+
+- Install the Arch package and the `.deb` where practical.
+- Run the AppImage, including `--appimage-extract-and-run` without FUSE.
+- Confirm the version in the window, package metadata and Data settings.
+- Check bundled fonts render offline, themes and existing databases remain intact.
+
+## 6. Publish checks
 
 - Confirm the release assets download and install.
 - Confirm the source archive matches the recorded checksum.
 - Confirm `main` remains clean and the tag points to the intended commit.
+- Confirm the release notes do not call unsigned Windows artifacts signed.
 - Update any AUR or distribution recipe separately, with its own review and checksum.
