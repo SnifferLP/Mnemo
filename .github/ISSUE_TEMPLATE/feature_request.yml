@@ -1,0 +1,50 @@
+name: Feature request
+description: Suggest a focused improvement to Mnemo.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Mnemo is deliberately local-first and single-user. Explain the user problem before proposing an implementation.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behaviour
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Library and organization
+        - Learning modes
+        - Statistics
+        - AI features
+        - Import / export
+        - Settings and accessibility
+        - Packaging / platform support
+        - Documentation
+        - Other
+    validations:
+      required: true
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues and discussions for this request.
+          required: true
+        - label: This request respects local-first operation and does not require a hosted Mnemo account or telemetry.
+          required: true

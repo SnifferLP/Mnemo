@@ -1,0 +1,39 @@
+# Maintainer: Mnemo project
+pkgname=mnemo
+pkgver=1.1.0
+pkgrel=1
+pkgdesc="Offline-first AI study platform with flashcards, spaced repetition and tests"
+arch=('x86_64')
+license=('MIT')
+depends=('webkit2gtk-4.1' 'gtk3' 'libsoup3' 'hicolor-icon-theme')
+makedepends=('nodejs' 'pnpm' 'rust' 'pkgconf')
+source=("mnemo-$pkgver.tar.gz")
+sha256sums=('5d3fe2301dc165455d8320770f787f605730ad92a109d38effc36ae4d5e6d12d')
+
+build() {
+  cd "mnemo-$pkgver"
+  pnpm install --frozen-lockfile
+  pnpm tauri build --no-bundle
+}
+
+package() {
+  cd "mnemo-$pkgver"
+
+  install -Dm755 src-tauri/target/release/mnemo "$pkgdir/usr/bin/mnemo"
+  install -Dm644 packaging/arch/mnemo.desktop \
+    "$pkgdir/usr/share/applications/mnemo.desktop"
+
+  install -Dm644 src-tauri/icons/32x32.png \
+    "$pkgdir/usr/share/icons/hicolor/32x32/apps/mnemo.png"
+  install -Dm644 src-tauri/icons/128x128.png \
+    "$pkgdir/usr/share/icons/hicolor/128x128/apps/mnemo.png"
+  install -Dm644 src-tauri/icons/128x128@2x.png \
+    "$pkgdir/usr/share/icons/hicolor/256x256/apps/mnemo.png"
+
+  install -Dm644 LICENSE \
+    "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  install -Dm644 THIRD_PARTY_NOTICES.md \
+    "$pkgdir/usr/share/licenses/$pkgname/THIRD_PARTY_NOTICES.md"
+  install -Dm644 licenses/OFL-1.1.txt \
+    "$pkgdir/usr/share/licenses/$pkgname/OFL-1.1.txt"
+}
