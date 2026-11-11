@@ -115,19 +115,33 @@ After all four succeed, the publish job downloads the artifacts, verifies that t
 
 The release build requires both updater secrets. The reusable build workflows check for them before compiling. If either is missing, the release fails with an explicit error; normal CI builds remain unsigned and do not need the secrets.
 
-### Ubuntu apt mirror failures
+### Ubuntu apt configuration and mirror failures
 
-The hosted Ubuntu runner resolves apt against an Azure-region mirror. That
-resolver intermittently fails (`Temporary failure resolving
-'azure.archive.ubuntu.com'`), and apt then walks the package list one 40 second
-timeout at a time, so the dependency step looks hung instead of failing.
-`build-linux.yml` therefore probes candidate mirrors before touching apt and
-uses the first one that answers HTTP, with `Acquire::http::Timeout`,
-`Acquire::https::Timeout`, `Acquire::Retries`, `Acquire::ForceIPv4`,
-`--no-install-recommends`, a 15 minute step timeout and a 75 minute job timeout.
-When no mirror answers, the step prints which hosts resolved and which did not
-and fails immediately; when dependencies are missing afterwards, it names the
-package instead of continuing into a broken build.
+The hosted image resolves apt through `mirror+file:/etc/apt/apt-mirrors.txt`,
+which selects `azure.archive.ubuntu.com`. That resolver fails intermittently
+(`Temporary failure resolving 'azure.archive.ubuntu.com'`). apt then keeps the
+index metadata it did fetch, prints `0 upgraded, 181 newly installed`, and walks
+the package list one download timeout at a time, so the step looks hung instead
+of failed.
+
+`build-linux.yml` no longer uses the runner's mirror routing. The dependency step:
+
+- prints the runner's apt configuration, `resolv.conf` and the DNS result for
+  each Ubuntu host;
+- probes four HTTPS mirrors for `noble`, `noble-updates`, `noble-backports` and
+  `noble-security` and uses the first that serves all four;
+- moves `sources.list.d/*` aside and writes a single explicit `sources.list` for
+  that mirror, so nothing can fall back to `mirror+file` and no unrelated
+  repository can mask a failure;
+- runs `apt-get update -o APT::Update::Error-Mode=any`, so any failing repository
+  is fatal, then checks that a noble package index exists and that every required
+  package has a candidate version before installing anything;
+- bounds every acquire (`Acquire::http::Timeout=10`, `Acquire::https::Timeout=10`,
+  `Acquire::Retries=2`, `Acquire::ForceIPv4`, `DPkg::Lock::Timeout=60`), installs
+  with `--no-install-recommends`, verifies every package with `dpkg -s`, and runs
+  inside a five minute step timeout (75 minutes for the job).
+
+Measured on the release recovery run: 2 m 37 s for update plus install.
 
 The runner image stays on `ubuntu-24.04`. `ubuntu-22.04` was evaluated as a
 reliability fallback and rejected as a fix: both hosted images sit behind the

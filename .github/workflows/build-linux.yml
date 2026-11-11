@@ -42,59 +42,74 @@ jobs:
           cache: pnpm
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      # The hosted image resolves apt through mirror+file:/etc/apt/apt-mirrors.txt,
+      # which points at azure.archive.ubuntu.com. That resolver fails
+      # intermittently ("Temporary failure resolving ..."), and apt then walks a
+      # 181 package list one download timeout at a time for ~50 minutes. This
+      # step replaces the routing with one explicitly probed mirror, validates
+      # the indexes, and fails within five minutes with a diagnostic instead.
       - name: Install Linux build dependencies
-        timeout-minutes: 15
+        timeout-minutes: 5
         env:
           DEBIAN_FRONTEND: noninteractive
         run: |
           set -euo pipefail
 
-          # The hosted Ubuntu image points apt at its Azure-region mirror, whose
-          # DNS resolution intermittently fails. apt then walks the package list
-          # one 40 second timeout at a time, which looks like a hung job. Probe
-          # candidates first and use the first mirror that actually answers.
-          mirrors=(
+          echo "::group::Runner apt configuration"
+          echo "--- /etc/apt/apt-mirrors.txt"
+          cat /etc/apt/apt-mirrors.txt || true
+          echo "--- /etc/apt/sources.list"
+          cat /etc/apt/sources.list || true
+          echo "--- /etc/apt/sources.list.d"
+          grep -R . /etc/apt/sources.list.d/ || true
+          for host in azure.archive.ubuntu.com archive.ubuntu.com security.ubuntu.com; do
+            echo "--- getent ahosts ${host}"
+            getent ahosts "$host" || echo "unresolved"
+          done
+          echo "--- resolv.conf"
+          cat /etc/resolv.conf || true
+          echo "::endgroup::"
+
+          # Only HTTPS mirrors that carry all four noble suites are candidates.
+          candidates=(
             "https://archive.ubuntu.com/ubuntu"
-            "http://azure.archive.ubuntu.com/ubuntu"
             "https://mirrors.edge.kernel.org/ubuntu"
             "https://ftp.osuosl.org/pub/ubuntu"
             "https://mirror.math.princeton.edu/pub/ubuntu"
           )
-          apt_options=(
-            -o Acquire::Retries=3
-            -o Acquire::http::Timeout=15
-            -o Acquire::https::Timeout=15
-            -o Acquire::ForceIPv4=true
-            -o DPkg::Lock::Timeout=120
-          )
-
-          echo "resolv.conf:"
-          cat /etc/resolv.conf || true
+          suites=(noble noble-updates noble-backports noble-security)
 
           chosen=""
-          for mirror in "${mirrors[@]}"; do
+          for mirror in "${candidates[@]}"; do
             host="${mirror#*://}"
             host="${host%%/*}"
-            if ! getent hosts "$host" >/dev/null 2>&1; then
+            if ! getent ahosts "$host" >/dev/null 2>&1; then
               echo "DNS failure: $host does not resolve" >&2
               continue
             fi
-            if curl -fsSI --max-time 10 "$mirror/dists/noble/Release" >/dev/null 2>&1; then
-              echo "Mirror answers: $mirror"
+            reachable=1
+            for suite in "${suites[@]}"; do
+              if ! curl -fsSI --max-time 8 "$mirror/dists/${suite}/Release" >/dev/null 2>&1; then
+                echo "Unresponsive: ${mirror}/dists/${suite}" >&2
+                reachable=0
+                break
+              fi
+            done
+            if [ "$reachable" -eq 1 ]; then
+              echo "Selected mirror: $mirror"
               chosen="$mirror"
               break
             fi
-            echo "Mirror unreachable: $mirror" >&2
           done
 
           if [ -z "$chosen" ]; then
-            echo "error: no apt mirror answered, so the Linux build dependencies cannot be installed." >&2
-            echo "Probe results:" >&2
-            for mirror in "${mirrors[@]}"; do
+            echo "error: no apt mirror answered for noble, noble-updates, noble-backports and noble-security." >&2
+            echo "This runner cannot install Linux build dependencies; refusing to attempt 181 downloads." >&2
+            for mirror in "${candidates[@]}"; do
               host="${mirror#*://}"
               host="${host%%/*}"
-              if getent hosts "$host" >/dev/null 2>&1; then
-                echo "  $host resolves but does not answer HTTP" >&2
+              if getent ahosts "$host" >/dev/null 2>&1; then
+                echo "  $host resolves but does not serve the noble suites over HTTP(S)" >&2
               else
                 echo "  $host does not resolve" >&2
               fi
@@ -102,14 +117,44 @@ jobs:
             exit 1
           fi
 
-          echo "Using apt mirror: $chosen"
-          sudo rm -f /etc/apt/sources.list.d/ubuntu.sources
-          printf 'deb %s noble main universe restricted multiverse\ndeb %s noble-updates main universe restricted multiverse\ndeb %s noble-security main universe restricted multiverse\n' \
-            "$chosen" "$chosen" "$chosen" | sudo tee /etc/apt/sources.list >/dev/null
-          grep -v '^#' /etc/apt/sources.list | grep . || true
+          # Drop mirror+file routing and unrelated third-party lists so the update
+          # is deterministic and a single failing repository is fatal.
+          sudo mkdir -p /etc/apt/sources.list.d.disabled
+          for file in /etc/apt/sources.list.d/*; do
+            [ -e "$file" ] || continue
+            sudo mv "$file" /etc/apt/sources.list.d.disabled/
+          done
+          sudo rm -f /etc/apt/sources.list
+          printf 'deb %s noble main restricted universe multiverse\ndeb %s noble-updates main restricted universe multiverse\ndeb %s noble-backports main restricted universe multiverse\ndeb %s noble-security main restricted universe multiverse\n' \
+            "$chosen" "$chosen" "$chosen" "$chosen" | sudo tee /etc/apt/sources.list >/dev/null
+          echo "--- effective sources"
+          cat /etc/apt/sources.list
 
-          sudo apt-get "${apt_options[@]}" update
-          sudo apt-get "${apt_options[@]}" install -y --no-install-recommends \
+          apt_options=(
+            -o Acquire::Retries=2
+            -o Acquire::http::Timeout=10
+            -o Acquire::https::Timeout=10
+            -o Acquire::ForceIPv4=true
+            -o DPkg::Lock::Timeout=60
+          )
+
+          started=$SECONDS
+          sudo apt-get "${apt_options[@]}" -o APT::Update::Error-Mode=any update
+
+          # Validate the indexes before downloading a single package.
+          if ! find /var/lib/apt/lists -name '*noble*Packages*' -print -quit | grep -q .; then
+            echo "error: apt update produced no noble package index from $chosen." >&2
+            exit 1
+          fi
+          for package in libwebkit2gtk-4.1-dev libgtk-3-dev libsoup-3.0-dev patchelf; do
+            if ! apt-cache policy "$package" | grep -q 'Candidate: [0-9]'; then
+              echo "error: $package is not available from $chosen." >&2
+              apt-cache policy "$package" >&2
+              exit 1
+            fi
+          done
+
+          sudo apt-get "${apt_options[@]}" -o APT::Update::Error-Mode=any install -y --no-install-recommends \
             libwebkit2gtk-4.1-dev \
             libgtk-3-dev \
             libayatana-appindicator3-dev \
@@ -117,14 +162,13 @@ jobs:
             libsoup-3.0-dev \
             patchelf
 
-          # Never continue into a build with silently missing dependencies.
           for package in libwebkit2gtk-4.1-dev libgtk-3-dev libsoup-3.0-dev patchelf; do
             if ! dpkg -s "$package" >/dev/null 2>&1; then
               echo "error: $package is still missing after installation." >&2
               exit 1
             fi
           done
-          echo "Linux build dependencies installed from $chosen"
+          echo "Linux build dependencies installed from $chosen in $((SECONDS - started))s"
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
