@@ -21,7 +21,21 @@ There is no account system, no telemetry and no vendor-hosted service. AI featur
 
 Mnemo uses a calm, card-based dashboard: a soft neutral canvas, white surfaces with rounded corners and soft elevation, a cobalt accent and a full-height navigation rail that collapses to an icon strip. Modern Sans is the default typeface, with the editorial serif still available in Settings. Light and dark themes share the same structure, and the interface adapts from smaller laptop windows to large desktop screens. The token system, sidebar and startup rules are documented in [`docs/DESIGN.md`](docs/DESIGN.md).
 
-The repository does not currently include sanitized product screenshots. Screenshot requirements and suggested captures are documented in [`docs/screenshots/README.md`](docs/screenshots/README.md). Please do not add screenshots containing real study content, personal names, API keys or machine-specific paths.
+<p align="center">
+  <img src="docs/screenshots/lightmode-dashboard.png" alt="Mnemo dashboard in light mode with sample study activity, daily goal and learning activity chart" width="820">
+</p>
+
+<table>
+  <tr>
+    <td width="50%" align="center"><img src="docs/screenshots/lightmode-set-overview.png" alt="Study set library with search, favourites and folder filters" width="400"></td>
+    <td width="50%" align="center"><img src="docs/screenshots/darkmode-ai-overview.png" alt="AI study assistant in dark mode with per-set context controls" width="400"></td>
+  </tr>
+  <tr>
+    <td colspan="2" align="center"><img src="docs/screenshots/darkmode-settings-overview.png" alt="Appearance settings in dark mode with display font, language, theme and accent colour" width="820"></td>
+  </tr>
+</table>
+
+Screenshots use neutral sample content from a development profile and show both themes. Requirements for new captures are documented in [`docs/screenshots/README.md`](docs/screenshots/README.md). Please do not add screenshots containing real study content, personal names, API keys or machine-specific paths.
 
 ## Features
 
