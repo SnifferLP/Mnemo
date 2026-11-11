@@ -209,6 +209,10 @@ CI checks:
 - Linux AppImage and `.deb` creation.
 - Arch package creation.
 - Gitleaks secret scanning.
+- actionlint on every `.github/workflows/*.yml` and `*.yaml` file, plus `bash -n`
+  and ShellCheck 0.11.0 on every tracked `*.sh` script (including
+  `scripts/ci/install-linux-deps.sh`). Pinned versions and checksums live in
+  the `workflow-lint` job in `ci.yml`; update both together.
 
 ### Manual Windows QA checklist
 

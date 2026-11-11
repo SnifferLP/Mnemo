@@ -64,6 +64,81 @@ jobs:
         working-directory: src-tauri
         run: cargo test --all-targets
 
+  workflow-lint:
+    name: Workflow and script lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      ACTIONLINT_VERSION: "1.7.12"
+      ACTIONLINT_SHA256: "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8"
+      SHELLCHECK_VERSION: "0.11.0"
+      SHELLCHECK_SHA256: "8c3be12b05d5c177a04c29e3c78ce89ac86f1595681cab149b65b97c4e227198"
+    steps:
+      - uses: actions/checkout@v7
+      # Both tools are pinned by version and verified by SHA-256, so a run is
+      # reproducible and cannot pick up a different binary between runs.
+      - name: Install pinned actionlint and ShellCheck
+        run: |
+          set -euo pipefail
+          bin="$RUNNER_TEMP/lint-bin"
+          cache="$RUNNER_TEMP/lint-download"
+          mkdir -p "$bin" "$cache"
+
+          curl -fsSL --retry 3 --retry-delay 2 -o "$cache/actionlint.tar.gz" \
+            "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          echo "${ACTIONLINT_SHA256}  $cache/actionlint.tar.gz" | sha256sum --check --strict
+          tar xzf "$cache/actionlint.tar.gz" -C "$bin" actionlint
+
+          curl -fsSL --retry 3 --retry-delay 2 -o "$cache/shellcheck.tar.xz" \
+            "https://github.com/koalaman/shellcheck/releases/download/v${SHELLCHECK_VERSION}/shellcheck-v${SHELLCHECK_VERSION}.linux.x86_64.tar.xz"
+          echo "${SHELLCHECK_SHA256}  $cache/shellcheck.tar.xz" | sha256sum --check --strict
+          tar xJf "$cache/shellcheck.tar.xz" -C "$cache"
+          install -m 0755 "$cache/shellcheck-v${SHELLCHECK_VERSION}/shellcheck" "$bin/shellcheck"
+
+          echo "$bin" >> "$GITHUB_PATH"
+
+      # Each file is parsed as YAML before the workflow schema is validated, so
+      # this step is also the syntax gate for the workflow files. Both the .yml
+      # and .yaml extensions are checked explicitly rather than relying on
+      # discovery, and an empty match fails instead of passing silently.
+      # actionlint's shellcheck integration is disabled on purpose: the
+      # dedicated ShellCheck step below is the gate for repository scripts, and
+      # the integration would currently fail on a pre-existing style warning in
+      # release.yml that this change deliberately does not touch.
+      - name: actionlint (workflow YAML and Actions schema)
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          workflows=(.github/workflows/*.yml .github/workflows/*.yaml)
+          if [ "${#workflows[@]}" -eq 0 ]; then
+            echo "error: no workflow files found under .github/workflows." >&2
+            exit 1
+          fi
+          printf 'Checking %s\n' "${workflows[@]}"
+          actionlint -no-color -shellcheck= "${workflows[@]}"
+
+      # Every tracked shell script is covered, so a new one cannot be added to
+      # the repository without also passing this gate.
+      - name: Bash syntax check
+        run: |
+          set -euo pipefail
+          mapfile -d '' scripts < <(git ls-files -z -- '*.sh')
+          if [ "${#scripts[@]}" -eq 0 ]; then
+            echo "error: no tracked shell scripts found." >&2
+            exit 1
+          fi
+          for script in "${scripts[@]}"; do
+            echo "bash -n $script"
+            bash -n "$script"
+          done
+
+      - name: ShellCheck
+        run: |
+          set -euo pipefail
+          mapfile -d '' scripts < <(git ls-files -z -- '*.sh')
+          shellcheck --version
+          shellcheck "${scripts[@]}"
+
   windows:
     name: Windows checks and installer
     uses: ./.github/workflows/build-windows.yml
