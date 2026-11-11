@@ -44,6 +44,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
             let handle = app.handle().clone();
             let base_dir = handle.path().app_data_dir()?;
@@ -135,6 +136,11 @@ pub fn run() {
             commands::transfer::export_study_set,
             commands::transfer::backup_database,
             commands::transfer::restore_database,
+            // updates
+            commands::updates::update_support,
+            commands::updates::check_for_update,
+            commands::updates::install_update,
+            commands::updates::restart_for_update,
             // insights
             commands::insights::get_dashboard,
             commands::insights::get_statistics,

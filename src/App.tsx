@@ -2,6 +2,7 @@ import { HashRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster } from "sonner";
 
 import { SettingsProvider, useSettings } from "@/context/SettingsContext";
+import { UpdateProvider } from "@/context/UpdateContext";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppShell, FullBleedShell } from "@/components/layout/AppShell";
 import { DashboardPage } from "@/pages/Dashboard";
@@ -18,6 +19,7 @@ import { StudySessionPage } from "@/pages/study/StudySessionPage";
 import { TestPage } from "@/pages/study/TestPage";
 import { MatchingPage } from "@/pages/study/MatchingPage";
 import { Button } from "@/components/ui/button";
+import { UpdateNotice } from "@/components/UpdateNotice";
 import { useI18n } from "@/i18n";
 
 function AppToaster() {
@@ -51,31 +53,34 @@ export default function App() {
   return (
     <HashRouter>
       <SettingsProvider>
-        <TooltipProvider delayDuration={250}>
-          <Routes>
-            <Route element={<AppShell />}>
-              <Route path="/" element={<DashboardPage />} />
-              <Route path="/sets" element={<SetsPage />} />
-              <Route path="/archive" element={<SetsPage archivedView />} />
-              <Route path="/sets/:id" element={<SetDetailPage />} />
-              <Route path="/sets/:id/edit" element={<SetEditorPage />} />
-              <Route path="/folders" element={<FoldersPage />} />
-              <Route path="/create" element={<CreatePage />} />
-              <Route path="/assistant" element={<AssistantPage />} />
-              <Route path="/magic-notes" element={<MagicNotesPage />} />
-              <Route path="/statistics" element={<StatisticsPage />} />
-              <Route path="/settings" element={<SettingsPage />} />
-              <Route path="/study" element={<Navigate to="/sets" replace />} />
-              <Route path="*" element={<NotFound />} />
-            </Route>
-            <Route element={<FullBleedShell />}>
-              <Route path="/sets/:id/study/test" element={<TestPage />} />
-              <Route path="/sets/:id/study/matching" element={<MatchingPage />} />
-              <Route path="/sets/:id/study/:mode" element={<StudySessionPage />} />
-            </Route>
-          </Routes>
-          <AppToaster />
-        </TooltipProvider>
+        <UpdateProvider>
+          <TooltipProvider delayDuration={250}>
+            <Routes>
+              <Route element={<AppShell />}>
+                <Route path="/" element={<DashboardPage />} />
+                <Route path="/sets" element={<SetsPage />} />
+                <Route path="/archive" element={<SetsPage archivedView />} />
+                <Route path="/sets/:id" element={<SetDetailPage />} />
+                <Route path="/sets/:id/edit" element={<SetEditorPage />} />
+                <Route path="/folders" element={<FoldersPage />} />
+                <Route path="/create" element={<CreatePage />} />
+                <Route path="/assistant" element={<AssistantPage />} />
+                <Route path="/magic-notes" element={<MagicNotesPage />} />
+                <Route path="/statistics" element={<StatisticsPage />} />
+                <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/study" element={<Navigate to="/sets" replace />} />
+                <Route path="*" element={<NotFound />} />
+              </Route>
+              <Route element={<FullBleedShell />}>
+                <Route path="/sets/:id/study/test" element={<TestPage />} />
+                <Route path="/sets/:id/study/matching" element={<MatchingPage />} />
+                <Route path="/sets/:id/study/:mode" element={<StudySessionPage />} />
+              </Route>
+            </Routes>
+            <AppToaster />
+            <UpdateNotice />
+          </TooltipProvider>
+        </UpdateProvider>
       </SettingsProvider>
     </HashRouter>
   );

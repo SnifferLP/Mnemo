@@ -2,6 +2,31 @@
 
 All notable changes to Mnemo are documented here. The project follows [Semantic Versioning](https://semver.org/).
 
+## [1.2.3] - 2026-11-11
+
+### Added
+
+- Automatic in-app updates for Windows x64 NSIS installations and Linux x86_64 AppImages using the official Tauri 2 updater plugin.
+- Stable and pre-release update channels, defaulting to Stable Releases and persisted with the other local settings.
+- A non-blocking bottom-right update notification with release notes, download progress, signature verification and explicit Later/Dismiss actions.
+- A Settings → Updates section with channel selection, installed version, manual checks, loading/error feedback and support information.
+- Signed updater artifacts and a generated `latest.json` manifest in the release pipeline, with separate stable/pre-release GitHub release discovery.
+
+### Fixed
+
+- Imported documents in the AI Generator can now be removed individually. Removing a document deletes its stored row, clears only its selection state and leaves other documents untouched.
+- Missing or stale document references are ignored by generation instead of breaking AI requests.
+
+### Changed
+
+- Normal CI builds remain unsigned and do not require the updater private key. Only release builds use the updater-enabled configuration and signing secrets.
+- The release workflow now refuses to publish updater metadata if the expected signatures are missing.
+
+### Security
+
+- Updater artifacts are signed with the Tauri minisign key. The public key is embedded in the application; the encrypted private key and password are stored only as GitHub Actions secrets.
+- Stable-channel checks never consider GitHub pre-releases. Pre-release checks may consider both pre-release and stable releases.
+
 ## [1.2.2] - 2026-11-11
 
 ### Added

@@ -4,3 +4,4 @@ pub mod library;
 pub mod prefs;
 pub mod study;
 pub mod transfer;
+pub mod updates;

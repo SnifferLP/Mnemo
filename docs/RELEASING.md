@@ -32,7 +32,26 @@ cargo test --all-targets
 
 Also verify a clean checkout builds, confirm no database or secret is present, and inspect `git status` for generated files.
 
-## 3. Build the artifacts
+## 3. Updater signing
+
+Mnemo uses the official Tauri 2 updater for Windows x64 NSIS builds and Linux x86_64 AppImages. The `.deb` and Arch packages intentionally do not use the in-app updater.
+
+The updater key pair is created once with:
+
+```bash
+tauri signer generate -w ~/.tauri/mnemo-updater.key
+```
+
+Only the **public** key belongs in `src-tauri/tauri.conf.json` under `plugins.updater.pubkey`. Never commit the private key or its password. The release repository must contain these Actions secrets:
+
+- `TAURI_SIGNING_PRIVATE_KEY` — the encrypted private key content (not a repository file).
+- `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` — its password.
+
+Store a secure backup of both. If the private key is lost, existing installations cannot verify future updates and users would have to install a new build manually.
+
+Normal CI builds deliberately do not require the key. Only release builds pass `--config src-tauri/tauri.release.conf.json` and receive the two secrets. That config enables `bundle.createUpdaterArtifacts`; it must not be enabled for an unsigned build, because Tauri will reject a public key without a private signing key.
+
+## 4. Build the artifacts
 
 ### Windows
 
@@ -46,8 +65,9 @@ pnpm tauri build --bundles nsis
 Expected bundle:
 
 - `src-tauri/target/release/bundle/nsis/Mnemo_<version>_x64-setup.exe`
+- `src-tauri/target/release/bundle/nsis/Mnemo_<version>_x64-setup.exe.sig` when the updater-enabled config and signing secret are present
 
-The installer is **unsigned**. Do not describe it as signed. SmartScreen may warn users about an unknown publisher.
+The Windows Authenticode installer remains **unsigned**. Do not describe it as code-signed. SmartScreen may warn users about an unknown publisher. The separate Tauri `.sig` file signs the updater payload; it is not a Windows Authenticode signature.
 
 ### Linux AppImage and Debian package
 
@@ -58,6 +78,7 @@ pnpm tauri build
 Expected bundles:
 
 - `src-tauri/target/release/bundle/appimage/Mnemo_<version>_amd64.AppImage`
+- `src-tauri/target/release/bundle/appimage/Mnemo_<version>_amd64.AppImage.sig` when the updater-enabled config and signing secret are present
 - `src-tauri/target/release/bundle/deb/Mnemo_<version>_amd64.deb`
 
 ### Arch package
@@ -81,30 +102,46 @@ The script creates `packaging/arch/mnemo-<version>.tar.gz` and prints its SHA-25
 
 The release workflow regenerates the source archive from the tagged commit and attaches it, together with a `SHA256SUMS` file.
 
-## 4. Automated GitHub Release workflow
+## 5. Automated GitHub Release workflow
 
 Publishing a GitHub Release triggers `.github/workflows/release.yml`. It runs these jobs in parallel:
 
-1. Windows checks and NSIS installer.
-2. Linux AppImage and `.deb`.
+1. Windows checks and signed NSIS installer.
+2. Linux signed AppImage and `.deb`.
 3. Arch package.
 4. Source archive.
 
-After all four succeed, the publish job downloads the artifacts, writes `SHA256SUMS`, and attaches the files to the existing release. The workflow does not create the release or tag.
+After all four succeed, the publish job downloads the artifacts, verifies that the Windows and AppImage signatures exist, writes a `latest.json` manifest with the signed Windows and Linux entries, writes `SHA256SUMS`, and attaches everything to the existing release. The workflow does not create the release or tag. It fails instead of publishing a manifest that references a missing or unsigned artifact.
 
-The workflow preserves the release's pre-release flag. Publish a pre-release when interactive platform QA is still outstanding, and keep the flag explicit in the GitHub UI.
+The release build requires both updater secrets. The reusable build workflows check for them before compiling. If either is missing, the release fails with an explicit error; normal CI builds remain unsigned and do not need the secrets.
+
+The workflow preserves the release's pre-release flag. Publish a pre-release only for test builds; publish the normal stable release without the pre-release flag. The in-app Stable Releases channel filters out any GitHub release marked as a pre-release.
+
+### Update channels and discovery
+
+At runtime Mnemo calls the GitHub releases API, filters drafts and the selected channel, compares SemVer versions, and then asks Tauri's updater to fetch `latest.json` from the exact selected release tag. It does not use `/releases/latest` for both channels. Stable only accepts releases with `prerelease=false`; Pre-Releases accepts stable and pre-release releases. An update is offered only when its manifest exists and Tauri accepts it for the current target.
+
+The manifest includes:
+
+- `windows-x86_64` pointing to the NSIS installer and its `.sig`.
+- `linux-x86_64` pointing to the AppImage and its `.sig`.
+
+Never hand-edit a published manifest to point at a different release. Re-run the release workflow instead.
 
 Create the tag and release only after the version commit is on `main` and CI is green. The release must be published rather than left as a draft to start the workflow.
 
-## 5. Verify artifacts and manual QA
+## 6. Verify artifacts and manual QA
 
 ```bash
 sha256sum \
   src-tauri/target/release/bundle/appimage/Mnemo_<version>_amd64.AppImage \
+  src-tauri/target/release/bundle/appimage/Mnemo_<version>_amd64.AppImage.sig \
   src-tauri/target/release/bundle/deb/Mnemo_<version>_amd64.deb \
   packaging/arch/mnemo-<version>-1-x86_64.pkg.tar.zst \
   packaging/arch/mnemo-<version>.tar.gz
 ```
+
+Download all release assets, including the normal packages, both updater signatures, `latest.json` and `SHA256SUMS`, and verify them. Confirm `latest.json` has the same version as the tag and that both entries carry non-empty signatures. Confirm the Stable Releases channel does not accept a pre-release tag.
 
 ### Automated coverage
 
@@ -141,10 +178,24 @@ Record what was tested and on which Windows version. If a check was not performe
 - Confirm the version in the window, package metadata and Data settings.
 - Check bundled fonts render offline, themes and existing databases remain intact.
 
-## 6. Publish checks
+### Manual updater QA
+
+On Windows x64 and Linux x86_64 AppImage builds, verify at least:
+
+- Startup completes without waiting for the GitHub check; a blocked network does not prevent launch.
+- Stable Releases with only a pre-release above the installed version reports no update.
+- Pre-Releases sees the same pre-release and shows the notification once.
+- Switching channels persists across restart and the next check uses the new channel.
+- Later dismisses the notification and it does not reappear for the same version in that session.
+- Download shows progress, the signature is accepted, the app restarts or the NSIS installer relaunches it, and user data/settings survive.
+- A deliberately invalid signature, missing asset or download failure leaves the current installation usable and shows an error.
+- Package-managed `.deb` and Arch builds report that automatic updates are handled by the package manager.
+
+## 7. Publish checks
 
 - Confirm the release assets download and install.
 - Confirm the source archive matches the recorded checksum.
 - Confirm `main` remains clean and the tag points to the intended commit.
-- Confirm the release notes do not call unsigned Windows artifacts signed.
+- Confirm the release notes distinguish the Windows Authenticode signing status from the Tauri updater signature.
+- Confirm the release includes `latest.json`, both `.sig` files and the normal packages.
 - Update any AUR or distribution recipe separately, with its own review and checksum.

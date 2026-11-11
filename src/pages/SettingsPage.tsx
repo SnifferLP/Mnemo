@@ -30,6 +30,7 @@ import { api } from "@/lib/api";
 import type { AiProviderInfo, AppInfo, ProviderPreset, SaveProviderInput } from "@/lib/types";
 import { cn, errorMessage, todayIso } from "@/lib/utils";
 import { useSettings } from "@/context/SettingsContext";
+import { useUpdates } from "@/context/UpdateContext";
 import { useI18n } from "@/i18n";
 import { PageHeader } from "@/components/common";
 import { Badge } from "@/components/ui/badge";
@@ -44,7 +45,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label, Separator, Slider } from "@/components/ui/misc";
+import { Label, Progress, Separator, Slider } from "@/components/ui/misc";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -404,9 +405,13 @@ function ProviderDialog({
 
 export function SettingsPage() {
   const { settings, loading, update } = useSettings();
+  const updates = useUpdates();
   const { t } = useI18n();
   const [params] = useSearchParams();
-  const [tab, setTab] = useState(params.get("section") === "ai" ? "ai" : "general");
+  const section = params.get("section");
+  const [tab, setTab] = useState(
+    section === "ai" ? "ai" : section === "updates" ? "updates" : "general",
+  );
 
   const [profile, setProfile] = useState({
     displayName: "",
@@ -574,6 +579,9 @@ export function SettingsPage() {
           </TabsTrigger>
           <TabsTrigger value="data">
             <Database /> {t("Data")}
+          </TabsTrigger>
+          <TabsTrigger value="updates">
+            <RefreshCw /> {t("Updates")}
           </TabsTrigger>
         </TabsList>
 
@@ -1181,6 +1189,173 @@ export function SettingsPage() {
                     </p>
                   </div>
                 ))}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="updates">
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
+            <Card>
+              <CardHeader>
+                <CardTitle>{t("Updates")}</CardTitle>
+                <p className="text-[12.5px] leading-relaxed text-muted-foreground">
+                  {t(
+                    "Choose how Mnemo looks for new versions. Checks run quietly in the background at startup, and nothing is installed without your confirmation.",
+                  )}
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                <div className="space-y-2">
+                  <Label>{t("Update channel")}</Label>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {[
+                      {
+                        value: "stable" as const,
+                        label: t("Stable Releases"),
+                        description: t("Only finished, non-pre-release versions."),
+                      },
+                      {
+                        value: "prerelease" as const,
+                        label: t("Pre-Releases"),
+                        description: t("Includes beta and test releases as well as stable versions."),
+                      },
+                    ].map((channel) => {
+                      const active = settings.updateChannel === channel.value;
+                      return (
+                        <button
+                          key={channel.value}
+                          type="button"
+                          aria-pressed={active}
+                          onClick={() => void update({ updateChannel: channel.value })}
+                          className={cn(
+                            "rounded-xl border p-3 text-left transition-colors",
+                            active
+                              ? "border-primary/50 bg-primary/[0.07]"
+                              : "border-border hover:bg-accent/40",
+                          )}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[12.5px] font-medium">{channel.label}</span>
+                            {active && <Badge variant="success">{t("Selected")}</Badge>}
+                          </div>
+                          <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+                            {channel.description}
+                          </p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="text-[11px] leading-relaxed text-muted-foreground">
+                    {t(
+                      "Changing the channel only affects future checks. Mnemo never switches channels for you.",
+                    )}
+                  </p>
+                </div>
+
+                <Separator />
+
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                      {t("Installed version")}
+                    </div>
+                    <div className="mt-1 font-mono text-[12.5px]">
+                      Mnemo {updates.support?.currentVersion ?? info?.version ?? "…"}
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={() => void updates.check(true)}
+                    disabled={
+                      updates.checking ||
+                      updates.installing ||
+                      !updates.support?.supported
+                    }
+                  >
+                    {updates.checking ? <Loader2 className="animate-spin" /> : <RefreshCw />}
+                    {updates.checking ? t("Checking…") : t("Check for updates")}
+                  </Button>
+                </div>
+
+                {!updates.support?.supported && updates.support?.message && (
+                  <div className="rounded-xl border border-border/70 bg-muted/20 p-3 text-[11.5px] leading-relaxed text-muted-foreground">
+                    <Info className="mb-1 size-3.5" />
+                    {updates.support.message}
+                  </div>
+                )}
+
+                {updates.error && (
+                  <div className="rounded-xl border border-destructive/25 bg-destructive/[0.05] p-3 text-[11.5px] leading-relaxed text-destructive">
+                    {updates.error}
+                  </div>
+                )}
+
+                {updates.lastCheck === "up-to-date" && (
+                  <div className="flex items-center gap-2 rounded-xl border border-success/25 bg-success/[0.05] p-3 text-[12px] text-success">
+                    <CheckCircle2 className="size-3.5" />
+                    {t("You're up to date")}
+                  </div>
+                )}
+
+                {updates.update && (
+                  <div className="space-y-2 rounded-xl border border-primary/30 bg-primary/[0.05] p-3">
+                    <div className="flex items-center gap-2 text-[12.5px] font-medium">
+                      <Download className="size-3.5 text-primary" />
+                      {t("Mnemo {version} is available.", { version: updates.update.version })}
+                    </div>
+                    {updates.update.notes && (
+                      <p className="line-clamp-4 text-[11.5px] leading-relaxed text-muted-foreground">
+                        {updates.update.notes}
+                      </p>
+                    )}
+                    <Button size="sm" onClick={() => void updates.install()} disabled={updates.installing}>
+                      {updates.installing ? <Loader2 className="animate-spin" /> : <Download />}
+                      {updates.installing ? t("Installing…") : t("Download and install")}
+                    </Button>
+                  </div>
+                )}
+
+                {updates.installing && (
+                  <div className="space-y-1.5">
+                    <Progress value={updates.progress ?? 0} />
+                    <p className="text-[11px] text-muted-foreground">
+                      {updates.stage === "installing" || updates.stage === "finished"
+                        ? t("Installing update…")
+                        : t("Downloading update…")}
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="self-start">
+              <CardHeader>
+                <CardTitle>{t("Supported automatic updates")}</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4 text-[12px] leading-relaxed text-muted-foreground">
+                <p>
+                  {t(
+                    "Windows x64 installers and Linux x86_64 AppImages can update themselves. Debian packages and Arch packages are updated by their package manager.",
+                  )}
+                </p>
+                <Separator />
+                <div>
+                  <div className="mb-1 flex items-center gap-1.5 text-[12px] font-medium text-foreground">
+                    <ShieldCheck className="size-3.5 text-success" />
+                    {t("Signed updates")}
+                  </div>
+                  <p>
+                    {t(
+                      "Every update is verified with Tauri's update signature before installation. Unsigned or tampered downloads are rejected.",
+                    )}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-border/70 bg-muted/20 p-3 text-[11.5px]">
+                  {t(
+                    "Update checks contact GitHub only. They never block startup, and a failed check leaves the current installation untouched.",
+                  )}
+                </div>
               </CardContent>
             </Card>
           </div>

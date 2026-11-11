@@ -1,12 +1,12 @@
 [package]
 name = "mnemo"
-version = "1.2.2"
+version = "1.2.3"
 description = "Local-first desktop study platform with flashcards and spaced repetition"
 authors = ["Mnemo contributors"]
 edition = "2021"
 license = "MIT"
 publish = false
-rust-version = "1.77"
+rust-version = "1.90"
 
 [lib]
 name = "mnemo_lib"
@@ -30,6 +30,8 @@ sqlx = { version = "0.8.6", default-features = false, features = ["runtime-tokio
 tauri = { version = "2", features = ["protocol-asset"] }
 tauri-plugin-dialog = "2"
 tauri-plugin-opener = "2"
+tauri-plugin-updater = "2"
+semver = "1.0"
 thiserror = "2.0.21"
 tokio = { version = "1.53.3", features = ["full"] }
 unicode-normalization = "0.1.26"

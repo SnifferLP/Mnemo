@@ -14,9 +14,15 @@ concurrency:
 jobs:
   windows:
     uses: ./.github/workflows/build-windows.yml
+    with:
+      sign_updates: true
+    secrets: inherit
 
   linux:
     uses: ./.github/workflows/build-linux.yml
+    with:
+      sign_updates: true
+    secrets: inherit
 
   arch:
     uses: ./.github/workflows/build-arch.yml
@@ -64,6 +70,48 @@ jobs:
           pattern: mnemo-*
           path: release
           merge-multiple: true
+
+      - name: Generate updater manifest
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_BODY: ${{ github.event.release.body }}
+          PUBLISHED_AT: ${{ github.event.release.published_at }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          version="${RELEASE_TAG#v}"
+          windows_asset="Mnemo_${version}_x64-setup.exe"
+          linux_asset="Mnemo_${version}_amd64.AppImage"
+          windows_sig="release/${windows_asset}.sig"
+          linux_sig="release/${linux_asset}.sig"
+
+          if [ ! -s "release/${windows_asset}" ] || [ ! -s "release/${linux_asset}" ]; then
+            echo "error: expected Windows and Linux updater artifacts are missing." >&2
+            exit 1
+          fi
+          if [ ! -s "$windows_sig" ] || [ ! -s "$linux_sig" ]; then
+            echo "error: updater signatures are missing; refusing to publish a manifest that cannot be verified." >&2
+            exit 1
+          fi
+
+          jq -n \
+            --arg version "$version" \
+            --arg notes "$RELEASE_BODY" \
+            --arg pub_date "$PUBLISHED_AT" \
+            --arg windows_url "https://github.com/${REPOSITORY}/releases/download/${RELEASE_TAG}/${windows_asset}" \
+            --arg windows_signature "$(cat "$windows_sig")" \
+            --arg linux_url "https://github.com/${REPOSITORY}/releases/download/${RELEASE_TAG}/${linux_asset}" \
+            --arg linux_signature "$(cat "$linux_sig")" \
+            '{
+              version: $version,
+              notes: $notes,
+              pub_date: $pub_date,
+              platforms: {
+                "windows-x86_64": { url: $windows_url, signature: $windows_signature },
+                "linux-x86_64": { url: $linux_url, signature: $linux_signature }
+              }
+            }' > release/latest.json
+          cat release/latest.json
 
       - name: Generate SHA-256 checksums
         run: |

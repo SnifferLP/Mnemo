@@ -78,6 +78,7 @@ export function CreatePage() {
   const [focus, setFocus] = useState("");
   const [generating, setGenerating] = useState(false);
   const [generated, setGenerated] = useState<GeneratedCard[]>([]);
+  const [removingDocId, setRemovingDocId] = useState<string | null>(null);
 
   const loadSupporting = useCallback(async () => {
     try {
@@ -98,6 +99,16 @@ export function CreatePage() {
     void loadSupporting();
     setCount(settings.aiCardBatch);
   }, [loadSupporting, settings.aiCardBatch]);
+
+  useEffect(() => {
+    // Drop stale references if a document was removed elsewhere or the
+    // imported row disappeared between loads.
+    setSelectedDocs((current) => {
+      const available = new Set(documents.map((document) => document.id));
+      const next = current.filter((id) => available.has(id));
+      return next.length === current.length ? current : next;
+    });
+  }, [documents]);
 
   const parsed = useMemo(() => parsePairs(text), [text]);
 
@@ -148,6 +159,37 @@ export function CreatePage() {
     } finally {
       setGenerating(false);
     }
+  };
+
+  const toggleDocument = (id: string, selected: boolean) => {
+    setSelectedDocs((current) => {
+      if (!selected) return current.filter((value) => value !== id);
+      return current.includes(id) ? current : [...current, id];
+    });
+  };
+
+  const removeDocument = async (document: DocumentSummary) => {
+    if (removingDocId) return;
+    setRemovingDocId(document.id);
+    try {
+      await api.documents.delete(document.id);
+    } catch (error) {
+      // A missing row is already removed; other failures must stay visible.
+      if (!errorMessage(error).toLowerCase().includes("not found")) {
+        toast.error(t("Could not remove the document"), {
+          description: errorMessage(error),
+        });
+        return;
+      }
+    } finally {
+      setRemovingDocId(null);
+    }
+
+    setDocuments((current) => current.filter((item) => item.id !== document.id));
+    setSelectedDocs((current) => current.filter((id) => id !== document.id));
+    toast.success(t("Document removed"), {
+      description: t("The document was removed from the AI Generator."),
+    });
   };
 
   const generate = async () => {
@@ -411,29 +453,56 @@ export function CreatePage() {
 
               {documents.length > 0 && (
                 <div className="space-y-2">
-                  <Label>{t("Imported documents")}</Label>
+                  <div className="flex items-center justify-between gap-2">
+                    <Label>{t("Imported documents")}</Label>
+                    <span className="text-[11px] text-muted-foreground">
+                      {t("{count} selected", { count: selectedDocs.length })}
+                    </span>
+                  </div>
                   <div className="max-h-[150px] space-y-1 overflow-y-auto">
                     {documents.map((doc) => {
                       const active = selectedDocs.includes(doc.id);
+                      const removing = removingDocId === doc.id;
                       return (
-                        <label
+                        <div
                           key={doc.id}
                           className={cn(
-                            "flex cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-2 text-[12.5px] transition-colors",
-                            active ? "border-primary/40 bg-primary/[0.06]" : "border-border/70 hover:bg-accent/40",
+                            "flex items-center gap-2 rounded-lg border px-2.5 py-2 text-[12.5px] transition-colors",
+                            active
+                              ? "border-primary/40 bg-primary/[0.06]"
+                              : "border-border/70 hover:bg-accent/40",
                           )}
                         >
                           <Checkbox
                             checked={active}
-                            onCheckedChange={(checked) =>
-                              setSelectedDocs((current) =>
-                                checked ? [...current, doc.id] : current.filter((value) => value !== doc.id),
-                              )
-                            }
+                            aria-label={t("Select {title}", { title: doc.title })}
+                            onCheckedChange={(checked) => toggleDocument(doc.id, checked === true)}
                           />
-                          <span className="flex-1 truncate">{doc.title}</span>
+                          <button
+                            type="button"
+                            className="min-w-0 flex-1 truncate text-left"
+                            onClick={() => toggleDocument(doc.id, !active)}
+                          >
+                            {doc.title}
+                          </button>
                           <Badge variant="muted">{doc.format}</Badge>
-                        </label>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon-sm"
+                            className="size-6 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                            aria-label={t("Remove {title} from the AI Generator", { title: doc.title })}
+                            title={t("Remove {title} from the AI Generator", { title: doc.title })}
+                            onClick={() => void removeDocument(doc)}
+                            disabled={removingDocId !== null}
+                          >
+                            {removing ? (
+                              <Loader2 className="size-3.5 animate-spin" />
+                            ) : (
+                              <Trash2 className="size-3.5" />
+                            )}
+                          </Button>
+                        </div>
                       );
                     })}
                   </div>

@@ -30,21 +30,22 @@ The repository does not currently include sanitized product screenshots. Screens
 - **Study modes** — flashcards, adaptive learning, writing practice, SM-2 spaced repetition, practice tests and a matching game.
 - **Insights** — due counts, daily goals, timezone-stable current and longest streaks, activity ranges, a 30-week heatmap and per-set progress.
 - **Import and export** — CSV, TSV, JSON and Quizlet-style text import; CSV, TSV, JSON, Markdown and PDF export.
-- **Optional AI** — card generation, document summaries, study guides and tutor chat through OpenAI-compatible APIs, Gemini or local Ollama.
+- **Optional AI** — card generation, document summaries, study guides and tutor chat through OpenAI-compatible APIs, Gemini or local Ollama. Imported documents can be selected or removed individually.
 - **Application info** — the installed version and a repository link are available at the bottom of Settings.
+- **Automatic updates** — signed in-app updates for Windows x64 and Linux x86_64 AppImage builds, with stable and pre-release channels.
 - **Privacy by default** — local SQLite storage, encrypted provider keys and no analytics.
 - **English and German UI** — locale-aware dates, plural forms and bundled offline fonts.
 
 ## Supported platforms
 
-| Platform | Status | Distribution |
-| --- | --- | --- |
-| Windows 10/11 x64 | Supported | NSIS installer (`.exe`) |
-| Linux x86_64 (Arch) | Supported | `.pkg.tar.zst` |
-| Linux x86_64 (general) | Supported | AppImage |
-| Debian/Ubuntu x86_64 | Supported | `.deb` |
-| Linux aarch64 | Not officially released | Source build may work; no package is published |
-| macOS | Not supported | — |
+| Platform | Status | Distribution | Automatic updates |
+| --- | --- | --- | --- |
+| Windows 10/11 x64 | Supported | NSIS installer (`.exe`) | Yes |
+| Linux x86_64 (Arch) | Supported | `.pkg.tar.zst` | Package manager only |
+| Linux x86_64 (general) | Supported | AppImage | Yes |
+| Debian/Ubuntu x86_64 | Supported | `.deb` | Package manager only |
+| Linux aarch64 | Not officially released | Source build may work; no package is published | No |
+| macOS | Not supported | — | No |
 
 Windows builds are produced on `windows-latest` in GitHub Actions. Linux checks and package builds run on Linux runners. No macOS artifact is published.
 
@@ -84,6 +85,19 @@ The AppImage needs FUSE 2. If FUSE is unavailable, run it with:
 ```bash
 ./Mnemo_<version>_amd64.AppImage --appimage-extract-and-run
 ```
+
+### Automatic updates
+
+Mnemo can update itself in place on **Windows x64 NSIS installations** and **Linux x86_64 AppImages** downloaded from this repository's GitHub Releases. The `.deb` and Arch packages are deliberately left to apt/pacman and are not modified by the in-app updater.
+
+Open **Settings → Updates** to choose a channel:
+
+- **Stable Releases** (default) only considers GitHub releases that are not marked as pre-releases.
+- **Pre-Releases** also considers beta and test releases. It never switches the channel automatically.
+
+Checks run in the background at startup without blocking the app. If a compatible update is found, a dismissible notification appears in the bottom-right corner. Mnemo downloads and installs only after **Download and install** is selected, verifies the Tauri signature, and then restarts on Linux or lets the NSIS installer relaunch the Windows app. A failed check or installation leaves the current installation usable.
+
+Update signing uses Tauri's minisign key. The public key is embedded in `src-tauri/tauri.conf.json`; the encrypted private key and its password are GitHub Actions secrets named `TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`. Unsigned or tampered update payloads are rejected. Do not publish a release whose updater artifacts are missing signatures.
 
 ### Debian and Ubuntu
 
@@ -201,6 +215,14 @@ pnpm tauri build
 
 On Linux this produces `.deb` and `.AppImage` bundles under `src-tauri/target/release/bundle/`. On Windows, `src-tauri/tauri.windows.conf.json` selects NSIS and produces an installer under `src-tauri/target/release/bundle/nsis/`.
 
+These ordinary builds do **not** produce updater signatures. To build signed updater artifacts locally, set `TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`, then merge the release config:
+
+```bash
+pnpm tauri build --config src-tauri/tauri.release.conf.json
+```
+
+On Linux this adds `Mnemo_<version>_amd64.AppImage.sig`; on Windows it adds `Mnemo_<version>_x64-setup.exe.sig`. Release automation generates the platform manifest as `latest.json` and attaches it to the GitHub Release.
+
 ### Arch Linux packaging
 
 Build the release binary without Tauri's own Linux bundles, then create the Arch package:
@@ -227,7 +249,7 @@ cargo clippy --all-targets --all-features -- -D warnings
 cargo test --all-targets
 ```
 
-The current local suite contains **27 Rust unit tests**, **13 Rust integration tests** and **20 frontend tests**. The frontend suite covers learning-round state, settings merging and translation catalogues. Rust tests cover SM-2 scheduling, answer normalization, import/export, AI request construction, settings sanitization, database migrations, CRUD, statistics, persistence, archive round trips and upgrade behavior.
+The current local suite contains **31 Rust unit tests**, **14 Rust integration tests** and **21 frontend tests**. The frontend suite covers learning-round state, settings merging, update-channel persistence and translation catalogues. Rust tests cover SM-2 scheduling, answer normalization, import/export, AI request construction, settings sanitization, database migrations, CRUD, document removal, updater channel selection, statistics, persistence, archive round trips and upgrade behavior.
 
 GitHub Actions also runs the Rust suite on Windows, builds the NSIS installer, builds Linux AppImage/`.deb` bundles and builds the Arch package. A successful compile is not a substitute for manual testing of Windows installation, display scaling, audio playback and other interactive behavior; see [`docs/RELEASING.md`](docs/RELEASING.md) for the manual QA checklist.
 
@@ -249,7 +271,8 @@ When reporting a Windows problem, please state whether it occurs with the instal
 ## Known limitations
 
 - No cloud sync, sharing links, mobile app or multi-user accounts.
-- The Windows installer is currently unsigned.
+- The Windows installer is currently unsigned. Updater artifacts are separately signed with Tauri's update key and are not affected by Windows Authenticode status.
+- Automatic updates are not implemented for `.deb`, Arch or other package-manager installations. Those packages must be updated through their package manager.
 - AI quality and availability depend on the configured provider; AI grading is off by default and consumes provider tokens.
 - Scanned PDFs require external OCR.
 - PDF export uses a limited built-in font encoding; use JSON or Markdown for full Unicode.

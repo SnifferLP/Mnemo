@@ -832,4 +832,53 @@ export const de: Record<string, string> = {
   Application: "Anwendung",
   "View repository on GitHub": "Repository auf GitHub ansehen",
   "Could not open the repository": "Das Repository konnte nicht geöffnet werden",
+
+  // AI document removal and updates
+  "Remove document": "Dokument entfernen",
+  "Document removed": "Dokument entfernt",
+  "The document was removed from the AI Generator.": "Das Dokument wurde aus dem KI-Generator entfernt.",
+  "Remove {title} from the AI Generator": "{title} aus dem KI-Generator entfernen",
+  "Select {title}": "{title} auswählen",
+  "{count} selected": "{count} ausgewählt",
+  "Could not remove the document": "Das Dokument konnte nicht entfernt werden",
+  Updates: "Updates",
+  "Update channel": "Update-Kanal",
+  "Stable Releases": "Stabile Versionen",
+  "Pre-Releases": "Vorabversionen",
+  "Only finished, non-pre-release versions.": "Nur fertige Versionen, keine Vorabversionen.",
+  "Includes beta and test releases as well as stable versions.":
+    "Enthält Beta- und Testversionen sowie stabile Versionen.",
+  Selected: "Ausgewählt",
+  "Changing the channel only affects future checks. Mnemo never switches channels for you.":
+    "Ein Wechsel wirkt sich nur auf künftige Prüfungen aus. Mnemo wechselt den Kanal nie selbstständig.",
+  "Installed version": "Installierte Version",
+  "Check for updates": "Nach Updates suchen",
+  "You're up to date": "Du bist auf dem neuesten Stand",
+  "Mnemo {version} is the latest release on this channel.":
+    "Mnemo {version} ist die neueste Version in diesem Kanal.",
+  "Update available": "Update verfügbar",
+  "Mnemo {version} is available.": "Mnemo {version} ist verfügbar.",
+  "Download and install": "Herunterladen und installieren",
+  Later: "Später",
+  "Dismiss update notification": "Update-Hinweis schließen",
+  "Downloading update…": "Update wird heruntergeladen …",
+  "Installing update…": "Update wird installiert …",
+  "Finishing update…": "Update wird abgeschlossen …",
+  "Update installed": "Update installiert",
+  "Mnemo {version} will restart now.": "Mnemo {version} wird jetzt neu gestartet.",
+  "Mnemo {version} has been installed.": "Mnemo {version} wurde installiert.",
+  "Update failed": "Update fehlgeschlagen",
+  "Your current installation is unchanged. {message}":
+    "Deine aktuelle Installation bleibt unverändert. {message}",
+  "Could not check for updates": "Updates konnten nicht geprüft werden",
+  "Choose how Mnemo looks for new versions. Checks run quietly in the background at startup, and nothing is installed without your confirmation.":
+    "Lege fest, wie Mnemo nach neuen Versionen sucht. Beim Start wird im Hintergrund geprüft; ohne deine Bestätigung wird nichts installiert.",
+  "Supported automatic updates": "Unterstützte automatische Updates",
+  "Windows x64 installers and Linux x86_64 AppImages can update themselves. Debian packages and Arch packages are updated by their package manager.":
+    "Windows-x64-Installer und Linux-x86_64-AppImages können sich selbst aktualisieren. Debian- und Arch-Pakete werden über die Paketverwaltung aktualisiert.",
+  "Signed updates": "Signierte Updates",
+  "Every update is verified with Tauri's update signature before installation. Unsigned or tampered downloads are rejected.":
+    "Jedes Update wird vor der Installation mit Tauris Update-Signatur geprüft. Unsigned oder manipulierte Downloads werden abgelehnt.",
+  "Update checks contact GitHub only. They never block startup, and a failed check leaves the current installation untouched.":
+    "Update-Prüfungen kontaktieren nur GitHub. Sie blockieren den Start nicht, und eine fehlgeschlagene Prüfung lässt die aktuelle Installation unverändert.",
 };

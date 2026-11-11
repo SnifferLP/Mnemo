@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { Channel, invoke } from "@tauri-apps/api/core";
 
 import type {
   AiProviderInfo,
@@ -36,7 +36,12 @@ import type {
   TestConfig,
   TestOutcome,
   TestQuestion,
+  UpdateCandidate,
+  UpdateChannel,
+  UpdateInstallResult,
+  UpdateProgress,
   UpdateSetInput,
+  UpdateSupport,
 } from "./types";
 
 async function call<T>(command: string, args?: Record<string, unknown>): Promise<T> {
@@ -129,6 +134,21 @@ export const api = {
     saveText: (title: string, content: string, kind: "material" | "notes" = "material") =>
       call<ImportedDocument>("save_document_text", { title, content, kind }),
     delete: (id: string) => call<void>("delete_document", { id }),
+  },
+  updates: {
+    support: () => call<UpdateSupport>("update_support"),
+    check: (channel: UpdateChannel) =>
+      call<UpdateCandidate | null>("check_for_update", { channel }),
+    install: (
+      channel: UpdateChannel,
+      version: string,
+      onEvent: (event: UpdateProgress) => void,
+    ) => {
+      const progress = new Channel<UpdateProgress>();
+      progress.onmessage = onEvent;
+      return call<UpdateInstallResult>("install_update", { channel, version, onEvent: progress });
+    },
+    restart: () => call<void>("restart_for_update"),
   },
   learning: {
     queue: (setId: string, mode: string, limit = 0) =>

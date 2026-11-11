@@ -9,7 +9,7 @@ use mnemo_lib::export;
 use mnemo_lib::import;
 use mnemo_lib::learning::{self, TestAnswer, TestConfig};
 use mnemo_lib::models::{CardInput, CreateSetInput, UpdateSetInput};
-use mnemo_lib::services::{sessions, sets};
+use mnemo_lib::services::{documents, sessions, sets};
 use mnemo_lib::settings::{self, AppSettings};
 use mnemo_lib::spaced_repetition::Outcome;
 use mnemo_lib::statistics;
@@ -285,6 +285,7 @@ async fn settings_are_sanitised_and_persisted() {
     assert_eq!(defaults.accent, "ember");
     assert_eq!(defaults.display_font, "editorial");
     assert_eq!(defaults.language, "en");
+    assert_eq!(defaults.update_channel, "stable");
     assert_eq!(defaults.daily_goal, 30);
 
     let custom = AppSettings {
@@ -325,9 +326,11 @@ async fn settings_are_sanitised_and_persisted() {
     let mut invalid = loaded;
     invalid.display_font = "comic".into();
     invalid.language = "fr".into();
+    invalid.update_channel = "nightly".into();
     let sanitised = settings::save(&db.pool, &invalid).await.expect("sanitise");
     assert_eq!(sanitised.display_font, "editorial");
     assert_eq!(sanitised.language, "en");
+    assert_eq!(sanitised.update_channel, "stable");
 
     db.cleanup().await;
 }
@@ -921,6 +924,49 @@ async fn archived_sets_are_hidden_from_active_workflows_and_can_be_restored() {
     sets::delete(&db.pool, &created.set.id)
         .await
         .expect("delete restored set");
+    db.cleanup().await;
+}
+
+#[tokio::test]
+async fn documents_can_be_removed_without_touching_other_material() {
+    let db = TestDb::new().await;
+
+    let first = documents::insert_text(&db.pool, "First PDF", "alpha material", "material")
+        .await
+        .expect("first document");
+    let second = documents::insert_text(&db.pool, "Second DOCX", "beta material", "material")
+        .await
+        .expect("second document");
+
+    let source = documents::text_for_ids(&db.pool, &[first.id.clone(), second.id.clone()])
+        .await
+        .expect("combined source");
+    assert!(source.contains("alpha material"));
+    assert!(source.contains("beta material"));
+
+    documents::delete(&db.pool, &first.id)
+        .await
+        .expect("delete first document");
+
+    let remaining = documents::list(&db.pool, Some("material".into()))
+        .await
+        .expect("remaining documents");
+    assert_eq!(remaining.len(), 1);
+    assert_eq!(remaining[0].id, second.id);
+    assert!(documents::get(&db.pool, &first.id).await.is_err());
+
+    // Stale document IDs are ignored rather than breaking AI generation.
+    let after_removal = documents::text_for_ids(&db.pool, &[first.id, second.id])
+        .await
+        .expect("source after removal");
+    assert!(!after_removal.contains("alpha material"));
+    assert!(after_removal.contains("beta material"));
+
+    // Deleting an already missing row is idempotent for stale references.
+    documents::delete(&db.pool, "missing-document")
+        .await
+        .expect("idempotent delete");
+
     db.cleanup().await;
 }
 

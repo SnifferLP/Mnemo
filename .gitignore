@@ -72,6 +72,7 @@ crashdumps/
 *.exe
 *.dmg
 *.pkg.tar.zst
+*.sig
 *.pkg.tar.xz
 /packaging/arch/*.tar.gz
 /packaging/arch/src/

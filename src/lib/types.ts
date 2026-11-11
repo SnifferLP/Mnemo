@@ -1,6 +1,7 @@
 export type Theme = "dark" | "light" | "system";
 export type DisplayFont = "editorial" | "modern";
 export type Language = "en" | "de";
+export type UpdateChannel = "stable" | "prerelease";
 
 export interface AppSettings {
   theme: Theme;
@@ -22,6 +23,7 @@ export interface AppSettings {
   sidebarCollapsed: boolean;
   shuffleCards: boolean;
   animations: boolean;
+  updateChannel: UpdateChannel;
 }
 
 export interface Folder {
@@ -473,6 +475,32 @@ export interface AppInfo {
   dataDir: string;
   dbPath: string;
   mediaDir: string;
+}
+
+export interface UpdateSupport {
+  supported: boolean;
+  currentVersion: string;
+  message: string | null;
+}
+
+export interface UpdateCandidate {
+  version: string;
+  currentVersion: string;
+  notes: string | null;
+  publishedAt: string | null;
+  releaseUrl: string;
+  channel: UpdateChannel;
+}
+
+export interface UpdateProgress {
+  stage: "started" | "progress" | "installing" | "finished";
+  downloaded: number;
+  contentLength: number | null;
+}
+
+export interface UpdateInstallResult {
+  version: string;
+  restartRequired: boolean;
 }
 
 export type StudyMode =

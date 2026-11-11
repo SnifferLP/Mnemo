@@ -8,9 +8,10 @@ import {
 } from "./settings";
 
 describe("settings merging", () => {
-  it("defaults to the editorial serif and English", () => {
+  it("defaults to the editorial serif, English and stable updates", () => {
     expect(DEFAULT_SETTINGS.displayFont).toBe("editorial");
     expect(DEFAULT_SETTINGS.language).toBe("en");
+    expect(DEFAULT_SETTINGS.updateChannel).toBe("stable");
   });
 
   it("persists display font and language independently from the theme", () => {
@@ -59,6 +60,17 @@ describe("settings merging", () => {
       dailyGoal: 75,
       answerCaseSensitive: true,
     });
+  });
+
+  it("changes the update channel without touching other preferences", () => {
+    const next = mergeSettings(
+      { ...DEFAULT_SETTINGS, theme: "dark" as const, dailyGoal: 75 },
+      { updateChannel: "prerelease" },
+    );
+
+    expect(next.updateChannel).toBe("prerelease");
+    expect(next.theme).toBe("dark");
+    expect(next.dailyGoal).toBe(75);
   });
 });
 

@@ -13,6 +13,9 @@ describe("translation catalogue", () => {
     expect(translate("de", "Play")).toBe("Abspielen");
     expect(translate("de", "Archive")).toBe("Archiv");
     expect(translate("de", "Restore")).toBe("Wiederherstellen");
+    expect(translate("de", "Document removed")).toBe("Dokument entfernt");
+    expect(translate("de", "Stable Releases")).toBe("Stabile Versionen");
+    expect(translate("de", "Pre-Releases")).toBe("Vorabversionen");
   });
 
   it("uses consistent flashcard terminology", () => {

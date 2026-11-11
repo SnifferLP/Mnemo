@@ -31,6 +31,8 @@ pub struct AppSettings {
     pub sidebar_collapsed: bool,
     pub shuffle_cards: bool,
     pub animations: bool,
+    /// "stable" | "prerelease"
+    pub update_channel: String,
 }
 
 impl Default for AppSettings {
@@ -55,6 +57,7 @@ impl Default for AppSettings {
             sidebar_collapsed: false,
             shuffle_cards: false,
             animations: true,
+            update_channel: "stable".into(),
         }
     }
 }
@@ -69,6 +72,9 @@ impl AppSettings {
         }
         if !["en", "de"].contains(&self.language.as_str()) {
             self.language = "en".into();
+        }
+        if !["stable", "prerelease"].contains(&self.update_channel.as_str()) {
+            self.update_channel = "stable".into();
         }
         self.daily_goal = self.daily_goal.clamp(1, 1000);
         self.daily_goal_minutes = self.daily_goal_minutes.clamp(1, 600);
