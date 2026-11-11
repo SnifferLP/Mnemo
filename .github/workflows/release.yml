@@ -3,12 +3,18 @@ name: Release
 on:
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag to attach artifacts to, for example v1.2.4
+        required: true
+        type: string
 
 permissions:
   contents: write
 
 concurrency:
-  group: release-${{ github.event.release.tag_name }}
+  group: release-${{ inputs.tag || github.event.release.tag_name }}
   cancel-in-progress: false
 
 jobs:
@@ -16,22 +22,29 @@ jobs:
     uses: ./.github/workflows/build-windows.yml
     with:
       sign_updates: true
+      ref: ${{ inputs.tag || github.event.release.tag_name }}
     secrets: inherit
 
   linux:
     uses: ./.github/workflows/build-linux.yml
     with:
       sign_updates: true
+      ref: ${{ inputs.tag || github.event.release.tag_name }}
     secrets: inherit
 
   arch:
     uses: ./.github/workflows/build-arch.yml
+    with:
+      ref: ${{ inputs.tag || github.event.release.tag_name }}
 
   source:
     name: Source archive
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.event.release.tag_name }}
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -42,7 +55,7 @@ jobs:
           version="$(node -p "require('./package.json').version")"
           archive="packaging/arch/mnemo-${version}.tar.gz"
           actual="$(sha256sum "$archive" | cut -d' ' -f1)"
-          expected="$(sed -n "s/^sha256sums=('\\([0-9a-f]\\{64\\}\\)')$/\\1/p" packaging/arch/PKGBUILD)"
+          expected="$(sed -n "s/^sha256sums=('\([0-9a-f]\{64\}\)')$/\1/p" packaging/arch/PKGBUILD)"
           if [ -z "$expected" ]; then
             echo "error: packaging/arch/PKGBUILD does not pin a source archive checksum" >&2
             exit 1
@@ -63,6 +76,7 @@ jobs:
     name: Publish release assets
     needs: [windows, linux, arch, source]
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
       - name: Download all build artifacts
         uses: actions/download-artifact@v4
@@ -71,11 +85,36 @@ jobs:
           path: release
           merge-multiple: true
 
+      # A release-triggered run carries the tag in the event payload; a manual
+      # recovery run passes it as an input. Everything downstream reads the
+      # resolved values, including the release's own pre-release flag, so a
+      # recovery never changes the state of the existing release.
+      - name: Resolve the target release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT_TAG: ${{ github.event.release.tag_name }}
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          tag="${INPUT_TAG:-$EVENT_TAG}"
+          if [ -z "$tag" ]; then
+            echo "error: no target tag. Pass the tag input when running this workflow manually." >&2
+            exit 1
+          fi
+          if ! gh release view "$tag" --json tagName >/dev/null 2>&1; then
+            echo "error: release $tag does not exist. This workflow only attaches assets to an existing release; it never creates tags or releases." >&2
+            exit 1
+          fi
+          echo "TAG=$tag" >> "$GITHUB_ENV"
+          gh release view "$tag" --json isPrerelease --jq '"RELEASE_PRERELEASE=\(.isPrerelease)"' >> "$GITHUB_ENV"
+          gh release view "$tag" --json publishedAt --jq '"RELEASE_PUBLISHED_AT=\(.publishedAt)"' >> "$GITHUB_ENV"
+          gh release view "$tag" --json body --jq .body > "$RUNNER_TEMP/release-body.md"
+          echo "Attaching artifacts to existing release $tag"
+
       - name: Generate updater manifest
         env:
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
-          RELEASE_BODY: ${{ github.event.release.body }}
-          PUBLISHED_AT: ${{ github.event.release.published_at }}
+          RELEASE_TAG: ${{ env.TAG }}
+          PUBLISHED_AT: ${{ env.RELEASE_PUBLISHED_AT }}
           REPOSITORY: ${{ github.repository }}
         run: |
           set -euo pipefail
@@ -98,7 +137,7 @@ jobs:
 
           jq -n \
             --arg version "$version" \
-            --arg notes "$RELEASE_BODY" \
+            --rawfile notes "$RUNNER_TEMP/release-body.md" \
             --arg pub_date "$PUBLISHED_AT" \
             --arg windows_url "https://github.com/${REPOSITORY}/releases/download/${RELEASE_TAG}/${windows_name}" \
             --arg windows_signature "$(cat "$windows_sig")" \
@@ -130,8 +169,8 @@ jobs:
       - name: Attach artifacts to the GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.event.release.tag_name }}
-          prerelease: ${{ github.event.release.prerelease }}
+          tag_name: ${{ env.TAG }}
+          prerelease: ${{ env.RELEASE_PRERELEASE == 'true' }}
           files: release/**/*
           fail_on_unmatched_files: true
           generate_release_notes: false

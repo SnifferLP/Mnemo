@@ -8,6 +8,11 @@ on:
         required: false
         type: boolean
         default: false
+      ref:
+        description: Git ref (usually a release tag) to build; empty uses the triggering ref
+        required: false
+        type: string
+        default: ""
     secrets:
       TAURI_SIGNING_PRIVATE_KEY:
         required: false
@@ -26,6 +31,8 @@ jobs:
     timeout-minutes: 75
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
       - uses: pnpm/action-setup@v4
         with:
           version: 12.18.0
@@ -40,23 +47,84 @@ jobs:
         env:
           DEBIAN_FRONTEND: noninteractive
         run: |
-          # The runner image points apt at an Azure mirror that can be
-          # unreachable; without bounded timeouts and retries apt falls back to
-          # per-package 40 second waits and the job appears to hang.
-          apt_options=(
-            -o Acquire::Retries=5
-            -o Acquire::http::Timeout=20
-            -o Acquire::https::Timeout=20
-            -o Acquire::ForceIPv4=true
+          set -euo pipefail
+
+          # The hosted Ubuntu image points apt at its Azure-region mirror, whose
+          # DNS resolution intermittently fails. apt then walks the package list
+          # one 40 second timeout at a time, which looks like a hung job. Probe
+          # candidates first and use the first mirror that actually answers.
+          mirrors=(
+            "https://archive.ubuntu.com/ubuntu"
+            "http://azure.archive.ubuntu.com/ubuntu"
+            "https://mirrors.edge.kernel.org/ubuntu"
+            "https://ftp.osuosl.org/pub/ubuntu"
+            "https://mirror.math.princeton.edu/pub/ubuntu"
           )
+          apt_options=(
+            -o Acquire::Retries=3
+            -o Acquire::http::Timeout=15
+            -o Acquire::https::Timeout=15
+            -o Acquire::ForceIPv4=true
+            -o DPkg::Lock::Timeout=120
+          )
+
+          echo "resolv.conf:"
+          cat /etc/resolv.conf || true
+
+          chosen=""
+          for mirror in "${mirrors[@]}"; do
+            host="${mirror#*://}"
+            host="${host%%/*}"
+            if ! getent hosts "$host" >/dev/null 2>&1; then
+              echo "DNS failure: $host does not resolve" >&2
+              continue
+            fi
+            if curl -fsSI --max-time 10 "$mirror/dists/noble/Release" >/dev/null 2>&1; then
+              echo "Mirror answers: $mirror"
+              chosen="$mirror"
+              break
+            fi
+            echo "Mirror unreachable: $mirror" >&2
+          done
+
+          if [ -z "$chosen" ]; then
+            echo "error: no apt mirror answered, so the Linux build dependencies cannot be installed." >&2
+            echo "Probe results:" >&2
+            for mirror in "${mirrors[@]}"; do
+              host="${mirror#*://}"
+              host="${host%%/*}"
+              if getent hosts "$host" >/dev/null 2>&1; then
+                echo "  $host resolves but does not answer HTTP" >&2
+              else
+                echo "  $host does not resolve" >&2
+              fi
+            done
+            exit 1
+          fi
+
+          echo "Using apt mirror: $chosen"
+          sudo rm -f /etc/apt/sources.list.d/ubuntu.sources
+          printf 'deb %s noble main universe restricted multiverse\ndeb %s noble-updates main universe restricted multiverse\ndeb %s noble-security main universe restricted multiverse\n' \
+            "$chosen" "$chosen" "$chosen" | sudo tee /etc/apt/sources.list >/dev/null
+          grep -v '^#' /etc/apt/sources.list | grep . || true
+
           sudo apt-get "${apt_options[@]}" update
-          sudo apt-get "${apt_options[@]}" -o DPkg::Lock::Timeout=120 install -y --no-install-recommends \
+          sudo apt-get "${apt_options[@]}" install -y --no-install-recommends \
             libwebkit2gtk-4.1-dev \
             libgtk-3-dev \
             libayatana-appindicator3-dev \
             librsvg2-dev \
             libsoup-3.0-dev \
             patchelf
+
+          # Never continue into a build with silently missing dependencies.
+          for package in libwebkit2gtk-4.1-dev libgtk-3-dev libsoup-3.0-dev patchelf; do
+            if ! dpkg -s "$package" >/dev/null 2>&1; then
+              echo "error: $package is still missing after installation." >&2
+              exit 1
+            fi
+          done
+          echo "Linux build dependencies installed from $chosen"
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:

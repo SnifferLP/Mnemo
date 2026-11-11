@@ -8,6 +8,11 @@ on:
         required: false
         type: boolean
         default: false
+      ref:
+        description: Git ref (usually a release tag) to build; empty uses the triggering ref
+        required: false
+        type: string
+        default: ""
     secrets:
       TAURI_SIGNING_PRIVATE_KEY:
         required: false
@@ -23,6 +28,8 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
       - uses: pnpm/action-setup@v4
         with:
           version: 12.18.0

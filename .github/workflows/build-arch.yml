@@ -2,6 +2,12 @@ name: Build Arch package
 
 on:
   workflow_call:
+    inputs:
+      ref:
+        description: Git ref (usually a release tag) to build; empty uses the triggering ref
+        required: false
+        type: string
+        default: ""
 
 permissions:
   contents: read
@@ -22,6 +28,8 @@ jobs:
             pkgconf patchelf librsvg
           useradd -m builder
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
       - name: Install pnpm
         run: npm install -g pnpm@12.18.0
       - name: Install dependencies

@@ -115,19 +115,43 @@ After all four succeed, the publish job downloads the artifacts, verifies that t
 
 The release build requires both updater secrets. The reusable build workflows check for them before compiling. If either is missing, the release fails with an explicit error; normal CI builds remain unsigned and do not need the secrets.
 
-### Flaky runner mirrors
+### Ubuntu apt mirror failures
 
-The Ubuntu runner resolves apt against a region mirror that is occasionally
-unreachable. When that happens `apt-get` falls back to per-package retries and
-the job looks hung rather than failed. `build-linux.yml` therefore bounds the
-dependency step with short acquire timeouts, `--no-install-recommends`, a 15
-minute step timeout and a 75 minute job timeout.
+The hosted Ubuntu runner resolves apt against an Azure-region mirror. That
+resolver intermittently fails (`Temporary failure resolving
+'azure.archive.ubuntu.com'`), and apt then walks the package list one 40 second
+timeout at a time, so the dependency step looks hung instead of failing.
+`build-linux.yml` therefore probes candidate mirrors before touching apt and
+uses the first one that answers HTTP, with `Acquire::http::Timeout`,
+`Acquire::https::Timeout`, `Acquire::Retries`, `Acquire::ForceIPv4`,
+`--no-install-recommends`, a 15 minute step timeout and a 75 minute job timeout.
+When no mirror answers, the step prints which hosts resolved and which did not
+and fails immediately; when dependencies are missing afterwards, it names the
+package instead of continuing into a broken build.
 
-If an older tag still stalls there, cancel the run and re-run only the failed
-jobs: the Windows, Arch and source jobs are kept and the publish job runs once
-Linux finishes. A release-triggered run resolves its workflow files from the
-tag itself, so a workflow fix on `main` cannot reach an existing tag — retry the
-run rather than moving the tag.
+The runner image stays on `ubuntu-24.04`. `ubuntu-22.04` was evaluated as a
+reliability fallback and rejected as a fix: both hosted images sit behind the
+same Azure resolver, so the image version does not change DNS behaviour, and
+switching would mask the failure rather than address it. 24.04 also matches the
+glibc baseline the AppImage targets and ships `libwebkit2gtk-4.1-dev` directly.
+
+### Recovering an incomplete release
+
+A run triggered by the `release` event resolves its workflow files from the tag
+itself, so a workflow fix on `main` cannot reach an existing tag, and moving the
+tag is never an option. `release.yml` therefore also accepts a manual dispatch
+with an explicit target tag:
+
+```bash
+gh workflow run release.yml --ref main -f tag=v1.2.4
+```
+
+The dispatch run checks out the tag for application source, uses the current
+workflow logic from `main`, rebuilds every artifact and attaches them to the
+existing release. It resolves the tag, the release body and the pre-release flag
+from the release itself, so recovery cannot flip a stable release to a
+pre-release or vice versa. If no release exists for the tag the run fails; it
+never creates a tag, a release or a rewrite of history.
 
 The workflow preserves the release's pre-release flag. Publish a pre-release only for test builds; publish the normal stable release without the pre-release flag. The in-app Stable Releases channel filters out any GitHub release marked as a pre-release.
 
