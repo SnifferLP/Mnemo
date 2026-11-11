@@ -10,7 +10,7 @@ const Label = React.forwardRef<
   <LabelPrimitive.Root
     ref={ref}
     className={cn(
-      "text-[12px] font-medium leading-none text-foreground/90 peer-disabled:cursor-not-allowed peer-disabled:opacity-70",
+      "text-[12.5px] font-medium leading-none text-foreground peer-disabled:cursor-not-allowed peer-disabled:opacity-70",
       className,
     )}
     {...props}
@@ -34,7 +34,7 @@ function Progress({
       aria-valuemin={0}
       aria-valuemax={100}
       aria-valuenow={Math.round(clamped)}
-      className={cn("relative h-1 w-full overflow-hidden rounded-full bg-muted", className)}
+      className={cn("relative h-1.5 w-full overflow-hidden rounded-full bg-secondary", className)}
     >
       <div
         className={cn(
@@ -67,7 +67,7 @@ function Separator({
 }
 
 function Skeleton({ className }: { className?: string }) {
-  return <div className={cn("animate-pulse rounded-md bg-muted", className)} />;
+  return <div className={cn("animate-pulse rounded-xl bg-secondary/70", className)} />;
 }
 
 const Slider = React.forwardRef<
@@ -76,13 +76,13 @@ const Slider = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SliderPrimitive.Root
     ref={ref}
-    className={cn("relative flex w-full touch-none select-none items-center py-2", className)}
+    className={cn("relative flex w-full touch-none select-none items-center py-2.5", className)}
     {...props}
   >
-    <SliderPrimitive.Track className="relative h-1 w-full grow overflow-hidden rounded-full bg-muted">
-      <SliderPrimitive.Range className="absolute h-full bg-primary" />
+    <SliderPrimitive.Track className="relative h-1.5 w-full grow overflow-hidden rounded-full bg-secondary">
+      <SliderPrimitive.Range className="absolute h-full rounded-full bg-primary" />
     </SliderPrimitive.Track>
-    <SliderPrimitive.Thumb className="focus-ring block size-3.5 rounded-full border-2 border-primary bg-card transition-transform hover:scale-110" />
+    <SliderPrimitive.Thumb className="focus-ring block size-[18px] rounded-full bg-card shadow-lift transition-transform hover:scale-105" />
   </SliderPrimitive.Root>
 ));
 Slider.displayName = "Slider";

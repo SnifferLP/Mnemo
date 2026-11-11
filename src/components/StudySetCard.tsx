@@ -72,7 +72,7 @@ export function StudySetCard({
   return (
     <Card
       className={cn(
-        "lift group relative flex cursor-pointer flex-col gap-3 rounded-lg border-border bg-card p-4 hover:border-foreground/20",
+        "lift group relative flex cursor-pointer flex-col gap-4 p-5 hover:bg-card",
         busy && "pointer-events-none opacity-60",
       )}
       onClick={() => navigate(`/sets/${set.id}`)}
@@ -80,10 +80,10 @@ export function StudySetCard({
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
-            {set.isFavorite && <Star className="size-3 shrink-0 fill-primary text-primary" />}
-            <h3 className="display truncate text-[17px] leading-tight text-foreground">{set.title}</h3>
+            {set.isFavorite && <Star className="size-3.5 shrink-0 fill-warning text-warning" />}
+            <h3 className="display truncate text-[18px] leading-tight text-foreground">{set.title}</h3>
           </div>
-          <p className="mt-1.5 line-clamp-2 min-h-[34px] text-[12px] leading-relaxed text-muted-foreground">
+          <p className="mt-2 line-clamp-2 min-h-[34px] text-[12.5px] leading-relaxed text-muted-foreground">
             {set.description || t("No description yet.")}
           </p>
         </div>
@@ -92,7 +92,7 @@ export function StudySetCard({
             <Button
               variant="ghost"
               size="icon-sm"
-              className="shrink-0 text-muted-foreground/60 opacity-70 transition-opacity group-hover:opacity-100 data-[state=open]:opacity-100"
+              className="shrink-0 text-muted-foreground/70 opacity-60 transition-opacity group-hover:opacity-100 data-[state=open]:opacity-100"
               onClick={(event) => event.stopPropagation()}
               aria-label={t("Actions for {title}", { title: set.title })}
             >
@@ -186,35 +186,29 @@ export function StudySetCard({
         </DropdownMenu>
       </div>
 
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[9px] uppercase tracking-[0.09em] text-muted-foreground/75">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
         {metadata.map((item, index) => (
           <span key={`${item}-${index}`} className="flex items-center gap-2">
-            {index > 0 && <span className="text-border">/</span>}
+            {index > 0 && <span className="size-[3px] rounded-full bg-muted-foreground/35" />}
             <span>{item}</span>
           </span>
         ))}
         {set.dueCount > 0 && (
           <span className="flex items-center gap-2">
-            <span className="text-border">/</span>
-            <span className="text-primary">
+            <span className="size-[3px] rounded-full bg-muted-foreground/35" />
+            <span className="font-medium text-primary">
               {t("{count} due", { count: set.dueCount })}
             </span>
           </span>
         )}
       </div>
 
-      <div className="mt-auto border-t border-border pt-2.5">
-        <div className="flex items-baseline justify-between gap-3 text-[10.5px] text-muted-foreground">
-          <span className="font-mono text-[9px] uppercase tracking-[0.09em]">
-            {t("{percent}% mastered", { percent: mastery })}
-          </span>
+      <div className="mt-auto">
+        <div className="flex items-baseline justify-between gap-3 text-[11.5px] text-muted-foreground">
+          <span className="font-medium">{t("{percent}% mastered", { percent: mastery })}</span>
           <span>{set.lastStudiedAt ? formatRelative(set.lastStudiedAt) : t("Unstudied")}</span>
         </div>
-        <Progress
-          value={mastery}
-          className="mt-2 h-[2px] rounded-none bg-secondary"
-          indicatorClassName="rounded-none"
-        />
+        <Progress value={mastery} className="mt-2.5 h-1.5" />
       </div>
     </Card>
   );

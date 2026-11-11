@@ -152,7 +152,7 @@ export function FoldersPage() {
           <div
             className={cn(
               "group flex items-center gap-1 rounded-lg pr-1 transition-colors",
-              active ? "bg-primary/10 text-primary" : "hover:bg-accent/50",
+              active ? "bg-primary-soft text-primary" : "hover:bg-secondary/60",
             )}
             style={{ paddingLeft: depth * 12 }}
           >
@@ -221,19 +221,19 @@ export function FoldersPage() {
         <LoadingPanel label={t("Loading folders")} />
       ) : (
         <div className="grid gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
-          <Card className="flex h-fit flex-col p-2.5">
+          <Card className="flex h-fit flex-col p-3">
             <button
               onClick={() => setSelected(null)}
               className={cn(
                 "flex items-center gap-2 rounded-lg px-2 py-2 text-left text-[13px] transition-colors",
-                selected === null ? "bg-primary/10 text-primary" : "hover:bg-accent/50",
+                selected === null ? "bg-primary-soft text-primary" : "hover:bg-secondary/60",
               )}
             >
               <Layers className="size-4" />
               <span className="flex-1">{t("All study sets")}</span>
               <Badge variant="muted">{sets.length}</Badge>
             </button>
-            <div className="my-2 h-px bg-border" />
+            <div className="my-2 h-px bg-border/70" />
             {folders.length === 0 ? (
               <p className="px-2 py-4 text-center text-[12.5px] text-muted-foreground">
                 {t("No folders yet.")}
@@ -246,7 +246,7 @@ export function FoldersPage() {
           <div>
             <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
               <div>
-                <h2 className="text-[16px] font-semibold">
+                <h2 className="text-[17px] font-semibold tracking-[-0.015em]">
                   {selectedFolder ? selectedFolder.name : t("All study sets")}
                 </h2>
                 <p className="text-[12.5px] text-muted-foreground">
@@ -279,9 +279,9 @@ export function FoldersPage() {
                 }
               />
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 {visibleSets.map((set) => (
-                  <Card key={set.id} className="flex items-center gap-3 p-3">
+                  <Card key={set.id} className="flex items-center gap-3 p-4 transition-shadow hover:shadow-lift">
                     <button
                       className="min-w-0 flex-1 text-left"
                       onClick={() => navigate(`/sets/${set.id}`)}

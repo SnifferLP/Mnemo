@@ -20,14 +20,14 @@ export function UpdateNotice() {
     <div
       role="status"
       aria-live="polite"
-      className="fixed bottom-5 right-5 z-[80] w-[min(370px,calc(100vw-2.5rem))] animate-fade-in rounded-xl border border-primary/25 bg-card/95 p-4 shadow-[0_18px_55px_-18px_rgb(0_0_0/0.55)] backdrop-blur"
+      className="fixed bottom-6 right-6 z-[80] w-[min(380px,calc(100vw-2.5rem))] animate-fade-in rounded-2xl bg-card p-5 shadow-float"
     >
       <div className="flex items-start gap-3">
-        <span className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
-          <ArrowUpCircle className="size-4" />
+        <span className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary">
+          <ArrowUpCircle className="size-[18px]" strokeWidth={1.8} />
         </span>
         <div className="min-w-0 flex-1">
-          <div className="text-[13px] font-medium">{t("Update available")}</div>
+          <div className="text-[13.5px] font-semibold">{t("Update available")}</div>
           <p className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground">
             {t("Mnemo {version} is available.", { version: update.version })}
           </p>
@@ -36,14 +36,14 @@ export function UpdateNotice() {
           type="button"
           onClick={dismiss}
           aria-label={t("Dismiss update notification")}
-          className="focus-ring -mr-1 -mt-1 grid size-7 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+          className="focus-ring -mr-1 -mt-1 grid size-7 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
         >
           <X className="size-3.5" />
         </button>
       </div>
 
       {update.notes && (
-        <p className="mt-3 line-clamp-3 border-t border-border/70 pt-3 text-[11.5px] leading-relaxed text-muted-foreground">
+        <p className="mt-3 line-clamp-3 rounded-lg bg-secondary/60 p-3 text-[11.5px] leading-relaxed text-muted-foreground">
           {update.notes}
         </p>
       )}

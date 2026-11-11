@@ -157,9 +157,9 @@ export function SetsPage({ archivedView = false }: { archivedView?: boolean }) {
       {!archivedView && (
         <Link
           to="/archive"
-          className="group mb-6 flex items-center gap-3 rounded-xl border border-dashed border-border bg-muted/15 px-4 py-3 transition-colors hover:border-primary/35 hover:bg-primary/[0.04]"
+          className="group mb-5 flex items-center gap-3.5 rounded-xl bg-card px-5 py-4 shadow-soft transition-shadow hover:shadow-lift"
         >
-          <span className="grid size-9 shrink-0 place-items-center rounded-lg border border-border bg-card text-muted-foreground transition-colors group-hover:border-primary/30 group-hover:text-primary">
+          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary">
             <Archive className="size-4" />
           </span>
           <span className="min-w-0 flex-1">
@@ -168,14 +168,14 @@ export function SetsPage({ archivedView = false }: { archivedView?: boolean }) {
               {t("Sets you are not studying right now, kept safely out of the way.")}
             </span>
           </span>
-          <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
+          <span className="shrink-0 rounded-full bg-secondary px-2.5 py-1 text-[10.5px] font-medium text-muted-foreground">
             {t("{count} archived", { count: archivedCount })}
           </span>
           <ArrowRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
         </Link>
       )}
 
-      <div className="mb-6 flex flex-wrap items-center gap-2.5 border-y border-border py-3">
+      <div className="mb-5 flex flex-wrap items-center gap-2.5 rounded-xl bg-card p-3 shadow-soft">
         <div className="relative min-w-[220px] flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -306,7 +306,7 @@ export function SetsPage({ archivedView = false }: { archivedView?: boolean }) {
         />
       )}
 
-      <div className={cn("grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4")}>
+      <div className={cn("grid gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4")}>
         {sets.map((set) => (
           <StudySetCard
             key={set.id}

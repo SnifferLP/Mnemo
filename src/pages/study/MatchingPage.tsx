@@ -191,11 +191,11 @@ export function MatchingPage() {
                     disabled={isMatched}
                     onClick={() => pickLeft(tile.cardId)}
                     className={cn(
-                      "w-full rounded-xl border px-4 py-3 text-left text-[13.5px] transition-all duration-200",
-                      isMatched && "pointer-events-none scale-[0.98] border-success/30 bg-success/[0.06] text-success/50 opacity-50",
-                      isWrong && "animate-pop border-destructive bg-destructive/10 text-destructive",
-                      isSelected && !isMatched && "border-primary bg-primary/[0.1] ring-2 ring-primary/25",
-                      !isMatched && !isSelected && !isWrong && "border-border bg-card hover:-translate-y-0.5 hover:border-primary/40",
+                      "w-full rounded-xl px-4 py-3.5 text-left text-[13.5px] transition-all duration-200",
+                      isMatched && "pointer-events-none scale-[0.98] bg-success/10 text-success/50 opacity-50",
+                      isWrong && "animate-pop bg-destructive/12 text-destructive",
+                      isSelected && !isMatched && "bg-primary-soft text-primary ring-2 ring-primary/30",
+                      !isMatched && !isSelected && !isWrong && "bg-card shadow-soft hover:-translate-y-0.5 hover:shadow-lift",
                     )}
                   >
                     <span className="flex items-center gap-2">
@@ -217,10 +217,10 @@ export function MatchingPage() {
                     disabled={isMatched}
                     onClick={() => pickRight(tile.cardId)}
                     className={cn(
-                      "w-full rounded-xl border px-4 py-3 text-left text-[13.5px] transition-all duration-200",
-                      isMatched && "pointer-events-none scale-[0.98] border-success/30 bg-success/[0.06] text-success/50 opacity-50",
-                      isWrong && "animate-pop border-destructive bg-destructive/10 text-destructive",
-                      !isMatched && !isWrong && "border-border bg-card hover:-translate-y-0.5 hover:border-primary/40",
+                      "w-full rounded-xl px-4 py-3.5 text-left text-[13.5px] transition-all duration-200",
+                      isMatched && "pointer-events-none scale-[0.98] bg-success/10 text-success/50 opacity-50",
+                      isWrong && "animate-pop bg-destructive/12 text-destructive",
+                      !isMatched && !isWrong && "bg-card shadow-soft hover:-translate-y-0.5 hover:shadow-lift",
                     )}
                   >
                     {tile.text}

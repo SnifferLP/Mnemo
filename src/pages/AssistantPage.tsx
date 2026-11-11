@@ -200,7 +200,7 @@ export function AssistantPage() {
                 className={cn(
                   "group flex w-full items-center gap-1 rounded-lg px-2 py-2 text-left text-[12.5px] transition-colors",
                   activeId === conversation.id
-                    ? "bg-primary/10 text-primary"
+                    ? "bg-primary-soft text-primary"
                     : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
                 )}
               >
@@ -222,8 +222,8 @@ export function AssistantPage() {
           <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto p-5">
             {messages.length === 0 ? (
               <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
-                <span className="grid size-11 place-items-center rounded-xl border border-border bg-card text-primary">
-                  <Brain className="size-6" />
+                <span className="grid size-12 place-items-center rounded-2xl bg-primary-soft text-primary">
+                  <Brain className="size-6" strokeWidth={1.7} />
                 </span>
                 <div>
                   <h2 className="text-[16px] font-semibold">{t("What are we learning today?")}</h2>
@@ -238,7 +238,7 @@ export function AssistantPage() {
                     <button
                       key={suggestion}
                       onClick={() => void send(suggestion)}
-                      className="rounded-xl border border-border/70 px-3 py-2 text-left text-[12.5px] text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/[0.04] hover:text-foreground"
+                      className="rounded-xl bg-secondary/50 px-3.5 py-2.5 text-left text-[12.5px] text-muted-foreground transition-colors hover:bg-secondary/80 hover:text-foreground"
                     >
                       {t(suggestion)}
                     </button>
@@ -253,7 +253,7 @@ export function AssistantPage() {
                     className={cn("flex gap-3", message.role === "user" ? "justify-end" : "justify-start")}
                   >
                     {message.role === "assistant" && (
-                      <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-lg bg-primary/12 text-primary">
+                      <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-lg bg-primary-soft text-primary">
                         <Sparkles className="size-3.5" />
                       </span>
                     )}
@@ -262,7 +262,7 @@ export function AssistantPage() {
                         "max-w-[85%] rounded-lg px-3.5 py-2.5 text-[13px] leading-relaxed",
                         message.role === "user"
                           ? "bg-primary text-primary-foreground"
-                          : "border border-border/70 bg-card",
+                          : "bg-secondary/60",
                       )}
                     >
                       {message.role === "assistant" ? (
@@ -280,10 +280,10 @@ export function AssistantPage() {
                 ))}
                 {sending && (
                   <div className="flex items-center gap-3">
-                    <span className="grid size-7 place-items-center rounded-lg bg-primary/12 text-primary">
+                    <span className="grid size-7 place-items-center rounded-lg bg-primary-soft text-primary">
                       <Sparkles className="size-3.5 animate-pulse" />
                     </span>
-                    <div className="flex gap-1 rounded-lg border border-border bg-card px-3.5 py-3">
+                    <div className="flex gap-1 rounded-xl bg-secondary/60 px-3.5 py-3">
                       {[0, 1, 2].map((dot) => (
                         <span
                           key={dot}
@@ -298,7 +298,7 @@ export function AssistantPage() {
             )}
           </div>
 
-          <div className="border-t border-border p-3">
+          <div className="p-3">
             <div className="flex items-end gap-2">
               <Textarea
                 value={input}
@@ -322,10 +322,10 @@ export function AssistantPage() {
                   key={option.value}
                   onClick={() => setMode(option.value)}
                   className={cn(
-                    "rounded-full border px-2.5 py-1 text-[11px] transition-colors",
+                    "rounded-full px-3 py-1.5 text-[11px] font-medium transition-colors",
                     mode === option.value
-                      ? "border-primary/40 bg-primary/10 text-primary"
-                      : "border-border text-muted-foreground hover:bg-accent/50",
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-secondary/70 text-muted-foreground hover:text-foreground",
                   )}
                   title={t(option.hint)}
                 >

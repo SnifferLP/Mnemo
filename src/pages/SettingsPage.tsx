@@ -81,12 +81,12 @@ const LANGUAGES = [
 const REPOSITORY_URL = "https://github.com/SnifferLP/Mnemo";
 
 const ACCENTS = [
-  { id: "ember", label: "Ember", color: "oklch(0.58 0.15 38)" },
-  { id: "violet", label: "Violet", color: "oklch(0.6 0.11 300)" },
-  { id: "blue", label: "Blue", color: "oklch(0.68 0.17 255)" },
-  { id: "teal", label: "Teal", color: "oklch(0.7 0.12 185)" },
-  { id: "rose", label: "Rose", color: "oklch(0.68 0.19 10)" },
-  { id: "amber", label: "Amber", color: "oklch(0.76 0.14 72)" },
+  { id: "ember", label: "Ember", color: "oklch(0.545 0.155 42)" },
+  { id: "violet", label: "Violet", color: "oklch(0.512 0.168 296)" },
+  { id: "blue", label: "Blue", color: "oklch(0.492 0.188 266)" },
+  { id: "teal", label: "Teal", color: "oklch(0.512 0.088 190)" },
+  { id: "rose", label: "Rose", color: "oklch(0.535 0.178 12)" },
+  { id: "amber", label: "Amber", color: "oklch(0.548 0.122 72)" },
 ];
 
 interface ProviderForm {
@@ -375,7 +375,7 @@ function ProviderDialog({
             />
           </div>
 
-          <label className="flex items-center justify-between rounded-xl border border-border p-3">
+          <label className="flex items-center justify-between rounded-xl bg-secondary/50 p-4">
             <div>
               <div className="text-[13px] font-medium">{t("Use as default")}</div>
               <div className="text-[11.5px] text-muted-foreground">
@@ -602,10 +602,10 @@ export function SettingsPage() {
                           key={font.value}
                           onClick={() => void update({ displayFont: font.value })}
                           className={cn(
-                            "flex flex-col items-start gap-1 rounded-xl border p-3 text-left transition-colors",
+                            "flex flex-col items-start gap-1.5 rounded-xl p-3.5 text-left transition-colors",
                             active
-                              ? "border-primary/50 bg-primary/[0.07]"
-                              : "border-border hover:bg-accent/40",
+                              ? "bg-primary-soft text-primary"
+                              : "bg-secondary/50 hover:bg-secondary/80",
                           )}
                         >
                           <span
@@ -642,7 +642,7 @@ export function SettingsPage() {
                           key={language.value}
                           onClick={() => void update({ language: language.value })}
                           className={cn(
-                            "rounded-xl border px-3 py-2.5 text-left text-[12px] transition-colors",
+                            "rounded-xl px-3.5 py-2.5 text-left text-[12px] transition-colors",
                             active
                               ? "border-primary/50 bg-primary/[0.07] font-medium text-primary"
                               : "border-border text-muted-foreground hover:bg-accent/40",
@@ -673,10 +673,10 @@ export function SettingsPage() {
                           key={theme.value}
                           onClick={() => void update({ theme: theme.value })}
                           className={cn(
-                            "flex flex-col items-center gap-1.5 rounded-xl border p-3 text-[12px] transition-colors",
+                            "flex flex-col items-center gap-1.5 rounded-xl p-3.5 text-[12px] transition-colors",
                             active
-                              ? "border-primary/50 bg-primary/[0.07] text-primary"
-                              : "border-border text-muted-foreground hover:bg-accent/40",
+                              ? "bg-primary-soft text-primary"
+                              : "bg-secondary/50 text-muted-foreground hover:bg-secondary/80",
                           )}
                         >
                           <Icon className="size-4" />
@@ -695,8 +695,8 @@ export function SettingsPage() {
                         key={accent.id}
                         onClick={() => void update({ accent: accent.id })}
                         className={cn(
-                          "grid size-8 place-items-center rounded-full border-2 transition-transform hover:scale-110",
-                          settings.accent === accent.id ? "border-foreground/70" : "border-transparent",
+                          "grid size-8 place-items-center rounded-full transition-transform hover:scale-110",
+                          settings.accent === accent.id ? "ring-2 ring-primary ring-offset-2 ring-offset-card" : "",
                         )}
                         title={t(accent.label)}
                         aria-label={t(accent.label)}
@@ -792,7 +792,7 @@ export function SettingsPage() {
                   {savingProfile ? <Loader2 className="animate-spin" /> : <Save />} {t("Save preferences")}
                 </Button>
 
-                <div className="rounded-xl border border-border/70 bg-muted/20 p-3 text-[11.5px] leading-relaxed text-muted-foreground">
+                <div className="rounded-xl bg-secondary/60 p-3.5 text-[11.5px] leading-relaxed text-muted-foreground">
                   {t(
                     "No account, no sign-in and no telemetry. Your name is only used for the greeting on the dashboard.",
                   )}
@@ -952,7 +952,7 @@ export function SettingsPage() {
               </CardHeader>
               <CardContent className="space-y-2">
                 {providers.length === 0 && (
-                  <div className="rounded-xl border border-dashed border-border p-6 text-center">
+                  <div className="rounded-xl bg-secondary/50 p-6 text-center">
                     <Server className="mx-auto size-6 text-muted-foreground" />
                     <p className="mt-2 text-[13px] font-medium">{t("No provider configured")}</p>
                     <p className="mt-1 text-[12px] text-muted-foreground">
@@ -965,12 +965,12 @@ export function SettingsPage() {
                   <div
                     key={provider.id}
                     className={cn(
-                      "rounded-xl border p-3.5 transition-colors",
-                      provider.isDefault ? "border-primary/40 bg-primary/[0.04]" : "border-border",
+                      "rounded-xl p-4 transition-colors",
+                      provider.isDefault ? "bg-primary-soft" : "bg-secondary/50",
                     )}
                   >
                     <div className="flex items-start gap-3">
-                      <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
+                      <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary">
                         <Server className="size-4" />
                       </span>
                       <div className="min-w-0 flex-1">
@@ -1090,7 +1090,7 @@ export function SettingsPage() {
                   />
                 </div>
 
-                <div className="rounded-xl border border-border/70 bg-muted/20 p-3 text-[11.5px] leading-relaxed text-muted-foreground">
+                <div className="rounded-xl bg-secondary/60 p-3.5 text-[11.5px] leading-relaxed text-muted-foreground">
                   <ShieldCheck className="mb-1 size-3.5 text-success" />
                   {t(
                     "API keys are encrypted with AES-256-GCM and decrypted only inside Rust when a request you started is sent. They are never exposed to the UI or logs.",
@@ -1127,7 +1127,7 @@ export function SettingsPage() {
                 ) : (
                   <p className="text-[12.5px] text-muted-foreground">{t("Reading app information…")}</p>
                 )}
-                <div className="rounded-xl border border-border/70 bg-muted/20 p-3 text-[11.5px] leading-relaxed text-muted-foreground">
+                <div className="rounded-xl bg-secondary/60 p-3.5 text-[11.5px] leading-relaxed text-muted-foreground">
                   <Info className="mb-1 size-3.5" />
                   {t(
                     "Mnemo stores everything in a single SQLite database (WAL mode) plus a media folder. Nothing is synced or uploaded.",
@@ -1182,7 +1182,7 @@ export function SettingsPage() {
                     text: t("AI requests are only sent when you press a generate or send button."),
                   },
                 ].map((item) => (
-                  <div key={item.title} className="rounded-xl border border-border/70 p-3">
+                  <div key={item.title} className="rounded-xl bg-secondary/50 p-3.5">
                     <div className="text-[12.5px] font-medium">{item.title}</div>
                     <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
                       {item.text}
@@ -1229,10 +1229,10 @@ export function SettingsPage() {
                           aria-pressed={active}
                           onClick={() => void update({ updateChannel: channel.value })}
                           className={cn(
-                            "rounded-xl border p-3 text-left transition-colors",
+                            "rounded-xl p-3.5 text-left transition-colors",
                             active
-                              ? "border-primary/50 bg-primary/[0.07]"
-                              : "border-border hover:bg-accent/40",
+                              ? "bg-primary-soft text-primary"
+                              : "bg-secondary/50 hover:bg-secondary/80",
                           )}
                         >
                           <div className="flex items-center justify-between gap-2">
@@ -1279,27 +1279,27 @@ export function SettingsPage() {
                 </div>
 
                 {!updates.support?.supported && updates.support?.message && (
-                  <div className="rounded-xl border border-border/70 bg-muted/20 p-3 text-[11.5px] leading-relaxed text-muted-foreground">
+                  <div className="rounded-xl bg-secondary/60 p-3.5 text-[11.5px] leading-relaxed text-muted-foreground">
                     <Info className="mb-1 size-3.5" />
                     {updates.support.message}
                   </div>
                 )}
 
                 {updates.error && (
-                  <div className="rounded-xl border border-destructive/25 bg-destructive/[0.05] p-3 text-[11.5px] leading-relaxed text-destructive">
+                  <div className="rounded-xl bg-destructive/[0.08] p-3.5 text-[11.5px] leading-relaxed text-destructive">
                     {updates.error}
                   </div>
                 )}
 
                 {updates.lastCheck === "up-to-date" && (
-                  <div className="flex items-center gap-2 rounded-xl border border-success/25 bg-success/[0.05] p-3 text-[12px] text-success">
+                  <div className="flex items-center gap-2 rounded-xl bg-success/[0.08] p-3.5 text-[12px] text-success">
                     <CheckCircle2 className="size-3.5" />
                     {t("You're up to date")}
                   </div>
                 )}
 
                 {updates.update && (
-                  <div className="space-y-2 rounded-xl border border-primary/30 bg-primary/[0.05] p-3">
+                  <div className="space-y-2 rounded-xl bg-primary-soft/70 p-3.5">
                     <div className="flex items-center gap-2 text-[12.5px] font-medium">
                       <Download className="size-3.5 text-primary" />
                       {t("Mnemo {version} is available.", { version: updates.update.version })}
@@ -1351,7 +1351,7 @@ export function SettingsPage() {
                     )}
                   </p>
                 </div>
-                <div className="rounded-xl border border-border/70 bg-muted/20 p-3 text-[11.5px]">
+                <div className="rounded-xl bg-secondary/60 p-3.5 text-[11.5px]">
                   {t(
                     "Update checks contact GitHub only. They never block startup, and a failed check leaves the current installation untouched.",
                   )}
@@ -1362,7 +1362,7 @@ export function SettingsPage() {
         </TabsContent>
       </Tabs>
 
-      <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-4 font-mono text-[9px] uppercase tracking-[0.12em] text-muted-foreground/70">
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-2 px-1 text-[10.5px] text-muted-foreground/70">
         <span>{t("Application")} · Mnemo {info?.version ?? "…"}</span>
         <button
           type="button"

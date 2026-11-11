@@ -282,7 +282,7 @@ async fn settings_are_sanitised_and_persisted() {
 
     let defaults = settings::load(&db.pool).await.expect("defaults");
     assert_eq!(defaults.theme, "system");
-    assert_eq!(defaults.accent, "ember");
+    assert_eq!(defaults.accent, "blue");
     assert_eq!(defaults.display_font, "editorial");
     assert_eq!(defaults.language, "en");
     assert_eq!(defaults.update_channel, "stable");

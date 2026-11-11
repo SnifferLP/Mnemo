@@ -50,27 +50,27 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "relative flex h-full shrink-0 flex-col border-r border-border bg-background transition-[width] duration-200 ease-out",
-        collapsed ? "w-[72px]" : "w-[244px]",
+        "relative m-3 mr-0 flex h-[calc(100%-1.5rem)] shrink-0 flex-col overflow-hidden rounded-2xl bg-card shadow-soft transition-[width] duration-200 ease-out",
+        collapsed ? "w-[72px]" : "w-[248px]",
       )}
     >
-      <div className={cn("flex h-[76px] items-center px-4", collapsed && "justify-center px-0")}>
+      <div className={cn("flex h-[78px] items-center px-4", collapsed && "justify-center px-0")}>
         <button
-          className="focus-ring flex items-center gap-3 rounded-sm"
+          className="focus-ring flex items-center gap-3 rounded-xl"
           onClick={() => navigate("/")}
           aria-label={t("Mnemo home")}
         >
-          <span className="relative grid size-8 shrink-0 place-items-center border border-border bg-card">
+          <span className="relative grid size-9 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground shadow-[0_1px_2px_oklch(0.28_0.04_265/0.2)]">
             <span className="flex flex-col items-start gap-[3px]">
-              <span className="h-px w-4 bg-primary" />
-              <span className="h-px w-4 bg-foreground/65" />
-              <span className="h-px w-2.5 bg-foreground/30" />
+              <span className="h-[1.5px] w-4 rounded-full bg-primary-foreground" />
+              <span className="h-[1.5px] w-4 rounded-full bg-primary-foreground/70" />
+              <span className="h-[1.5px] w-2.5 rounded-full bg-primary-foreground/40" />
             </span>
           </span>
           {!collapsed && (
             <span className="flex flex-col items-start leading-none">
-              <span className="display text-[23px] leading-none text-foreground">Mnemo</span>
-              <span className="mt-1.5 font-mono text-[8.5px] uppercase tracking-[0.14em] text-muted-foreground">
+              <span className="display text-[22px] leading-none text-foreground">Mnemo</span>
+              <span className="mt-1.5 text-[9px] font-medium uppercase tracking-[0.13em] text-muted-foreground">
                 {t("A quiet archive")}
               </span>
             </span>
@@ -93,13 +93,13 @@ export function Sidebar() {
         {GROUPS.map((group, groupIndex) => (
           <div key={group.label} className={cn(groupIndex > 0 && "mt-5")}>
             {!collapsed ? (
-              <div className="mb-1.5 px-2.5 font-mono text-[8.5px] uppercase tracking-[0.16em] text-muted-foreground/65">
+              <div className="mb-1.5 px-3 text-[9.5px] font-semibold uppercase tracking-[0.11em] text-muted-foreground/70">
                 {t(group.label)}
               </div>
             ) : (
-              groupIndex > 0 && <div className="mx-2 mb-3 border-t border-border" />
+              groupIndex > 0 && <div className="mx-2 mb-3 h-px bg-border" />
             )}
-            <div className="space-y-px">
+            <div className="space-y-0.5">
               {group.items.map((item) => {
                 const Icon = item.icon;
                 const label = t(item.label);
@@ -110,28 +110,22 @@ export function Sidebar() {
                     end={"end" in item ? item.end : false}
                     className={({ isActive }) =>
                       cn(
-                        "group relative flex items-center gap-2.5 rounded-sm py-2 text-[12.5px] transition-colors",
-                        collapsed ? "justify-center px-0" : "pl-3 pr-2",
+                        "group relative flex items-center gap-2.5 rounded-lg py-2 text-[12.5px] font-medium transition-all",
+                        collapsed ? "justify-center px-0" : "px-3",
                         isActive
-                          ? "font-medium text-foreground"
-                          : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground",
+                          ? "bg-primary-soft text-primary"
+                          : "text-muted-foreground hover:bg-secondary/70 hover:text-foreground",
                       )
                     }
                   >
                     {({ isActive }) => (
                       <>
-                        <span
-                          className={cn(
-                            "absolute left-0 top-1/2 h-4 w-[2px] -translate-y-1/2 rounded-full bg-primary transition-opacity",
-                            isActive ? "opacity-100" : "opacity-0",
-                          )}
-                        />
                         <Icon
                           className={cn(
-                            "size-[16px] shrink-0",
-                            isActive ? "text-primary" : "text-muted-foreground/80",
+                            "size-[17px] shrink-0",
+                            isActive ? "text-primary" : "text-muted-foreground/85",
                           )}
-                          strokeWidth={1.75}
+                          strokeWidth={1.8}
                         />
                         {!collapsed && <span className="truncate">{label}</span>}
                       </>
@@ -152,33 +146,27 @@ export function Sidebar() {
         ))}
       </nav>
 
-      <div className="border-t border-border p-2.5">
+      <div className="p-2.5">
         <NavLink
           to="/settings"
           className={({ isActive }) =>
             cn(
-              "group relative flex items-center gap-2.5 rounded-sm py-2 text-[12.5px] transition-colors",
-              collapsed ? "justify-center px-0" : "pl-3 pr-2",
+              "group relative flex items-center gap-2.5 rounded-lg py-2 text-[12.5px] font-medium transition-all",
+              collapsed ? "justify-center px-0" : "px-3",
               isActive
-                ? "font-medium text-foreground"
-                : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground",
+                ? "bg-primary-soft text-primary"
+                : "text-muted-foreground hover:bg-secondary/70 hover:text-foreground",
             )
           }
         >
           {({ isActive }) => (
             <>
-              <span
-                className={cn(
-                  "absolute left-0 top-1/2 h-4 w-[2px] -translate-y-1/2 rounded-full bg-primary transition-opacity",
-                  isActive ? "opacity-100" : "opacity-0",
-                )}
-              />
               <Settings
                 className={cn(
-                  "size-[16px] shrink-0",
-                  isActive ? "text-primary" : "text-muted-foreground/80",
+                  "size-[17px] shrink-0",
+                  isActive ? "text-primary" : "text-muted-foreground/85",
                 )}
-                strokeWidth={1.75}
+                strokeWidth={1.8}
               />
               {!collapsed && <span>{t("Settings")}</span>}
             </>
@@ -188,15 +176,15 @@ export function Sidebar() {
         <button
           onClick={() => update({ sidebarCollapsed: !collapsed })}
           className={cn(
-            "mt-0.5 flex w-full items-center gap-2.5 rounded-sm py-2 text-[11.5px] text-muted-foreground/70 transition-colors hover:bg-secondary/60 hover:text-foreground",
-            collapsed ? "justify-center px-0" : "pl-3 pr-2",
+            "mt-1 flex w-full items-center gap-2.5 rounded-lg py-2 text-[11.5px] text-muted-foreground/80 transition-colors hover:bg-secondary/70 hover:text-foreground",
+            collapsed ? "justify-center px-0" : "px-3",
           )}
         >
           {collapsed ? (
-            <PanelLeftOpen className="size-4" strokeWidth={1.75} />
+            <PanelLeftOpen className="size-4" strokeWidth={1.8} />
           ) : (
             <>
-              <PanelLeftClose className="size-4" strokeWidth={1.75} />
+              <PanelLeftClose className="size-4" strokeWidth={1.8} />
               <span>{t("Collapse")}</span>
             </>
           )}

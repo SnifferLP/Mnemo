@@ -2,6 +2,25 @@
 
 All notable changes to Mnemo are documented here. The project follows [Semantic Versioning](https://semver.org/).
 
+## [1.2.4-rc.1] - 2026-11-11
+
+A visual release. Navigation, routes, workflows and stored data are unchanged.
+
+### Changed
+
+- Rebuilt the interface around a card dashboard: a soft cool-grey canvas, white surfaces with 12–24 px radii, soft shadows and significantly fewer visible borders.
+- Introduced a centralised design system in `src/index.css` covering background, surface, text and accent colours, radii, elevation, spacing, typography, control sizes and interactive states, documented in `docs/DESIGN.md`.
+- Moved the accent palette to a cobalt-led scheme, including a brighter dark-theme accent and retuned ember, violet, teal, rose and amber variants. Blue is now the default accent for new installations; existing stored preferences are kept.
+- Restyled every screen and shared component: dashboard, study sets, set detail, folders, create, AI assistant, Magic Notes, editor, statistics, archive, settings, study session, practice test and matching game.
+- Replaced underline tabs with soft segmented controls and converted outlined panels, metadata rules and list dividers into tinted surfaces, chips and spacing.
+- Restyled dialogs, dropdowns, select menus, popovers, tooltips, switches, sliders, progress bars, empty states, loading panels and error panels to match the new surfaces.
+- Rebuilt the sidebar as a floating card rail with a tinted active state, keeping labels, icons, order and destinations unchanged.
+- Updated the dark theme with the same surface, elevation and contrast rules as the light theme.
+
+### Fixed
+
+- Keyboard focus on inputs and selects now shows a visible accent outline instead of relying on a border colour change.
+
 ## [1.2.3] - 2026-11-11
 
 ### Added

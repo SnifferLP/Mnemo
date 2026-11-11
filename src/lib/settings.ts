@@ -2,7 +2,7 @@ import type { AppSettings } from "./types";
 
 export const DEFAULT_SETTINGS: AppSettings = {
   theme: "system",
-  accent: "ember",
+  accent: "blue",
   displayFont: "editorial",
   language: "en",
   displayName: "",

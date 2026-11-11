@@ -214,8 +214,8 @@ export function TestPage() {
                       <label
                         key={type.value}
                         className={cn(
-                          "flex cursor-pointer items-start gap-2.5 rounded-xl border p-3 transition-colors",
-                          active ? "border-primary/40 bg-primary/[0.06]" : "border-border hover:bg-accent/40",
+                          "flex cursor-pointer items-start gap-2.5 rounded-xl p-3.5 transition-colors",
+                          active ? "bg-primary-soft" : "bg-secondary/50 hover:bg-secondary/80",
                         )}
                       >
                         <Checkbox
@@ -256,7 +256,7 @@ export function TestPage() {
               </div>
 
               <div className="space-y-2">
-                <div className="flex items-center justify-between rounded-xl border border-border p-3">
+                <div className="flex items-center justify-between rounded-xl bg-secondary/50 p-4">
                   <div className="flex items-center gap-2">
                     <Timer className="size-4 text-muted-foreground" />
                     <div>
@@ -471,10 +471,10 @@ export function TestPage() {
                     key={optionIndex}
                     onClick={() => setAnswer({ optionIndex })}
                     className={cn(
-                      "flex w-full items-center gap-3 rounded-xl border px-3.5 py-3 text-left text-[13.5px] transition-colors",
+                      "flex w-full items-center gap-3 rounded-xl px-4 py-3.5 text-left text-[13.5px] transition-colors",
                       active
-                        ? "border-primary/50 bg-primary/[0.08] text-foreground"
-                        : "border-border hover:border-primary/30 hover:bg-accent/40",
+                        ? "bg-primary-soft text-foreground ring-1 ring-primary/30"
+                        : "bg-secondary/50 hover:bg-secondary/80",
                     )}
                   >
                     <span
@@ -515,7 +515,7 @@ export function TestPage() {
                   const mapping = answer.mapping ?? Array(current.pairs.length).fill(-1);
                   return (
                     <div key={pairIndex} className="grid items-center gap-2 sm:grid-cols-2">
-                      <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-[13px]">
+                      <div className="rounded-lg bg-secondary/60 px-3.5 py-2.5 text-[13px]">
                         {pair.left}
                       </div>
                       <Select

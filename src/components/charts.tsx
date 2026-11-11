@@ -32,7 +32,7 @@ export function Ring({
           r={radius}
           fill="none"
           strokeWidth={stroke}
-          className={cn("stroke-muted", trackClassName)}
+          className={cn("stroke-secondary", trackClassName)}
           strokeLinecap="round"
         />
         <circle
@@ -70,21 +70,21 @@ export function ActivityChart({
       <div className="flex items-end gap-[3px]" style={{ height }}>
         {data.map((day, index) => {
           const ratio = day.reviews / max;
-          const barHeight = day.reviews === 0 ? 2 : Math.max(5, ratio * height);
+          const barHeight = day.reviews === 0 ? 3 : Math.max(6, ratio * height);
           return (
             <div key={day.date} className="group relative flex h-full flex-1 items-end">
               <div
                 className={cn(
-                  "w-full rounded-[2px] transition-all duration-300",
+                  "w-full max-w-[22px] rounded-[5px] transition-all duration-300",
                   day.reviews === 0
-                    ? "bg-muted"
-                    : "bg-primary/75 group-hover:bg-primary",
+                    ? "bg-secondary"
+                    : "bg-primary/70 group-hover:bg-primary",
                 )}
                 style={{ height: barHeight }}
               />
-              <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-md border border-border bg-popover px-2 py-1.5 text-[10.5px] shadow-sm group-hover:block">
-                <div className="font-medium">{shortDate(day.date)}</div>
-                <div className="text-muted-foreground">
+              <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-foreground px-2.5 py-1.5 text-[10.5px] text-background shadow-lift group-hover:block">
+                <div className="font-semibold">{shortDate(day.date)}</div>
+                <div className="text-background/70">
                   {t("{reviews} {label} · {minutes}m", {
                     reviews: day.reviews,
                     label: t(valueLabel),
@@ -93,7 +93,7 @@ export function ActivityChart({
                 </div>
               </div>
               {index % labelEvery === 0 && (
-                <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap font-mono text-[8.5px] uppercase tracking-wide text-muted-foreground/60">
+                <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap text-[9px] font-medium text-muted-foreground/70">
                   {shortDate(day.date)}
                 </span>
               )}
@@ -124,7 +124,7 @@ export function Heatmap({ data }: { data: DayActivity[] }) {
 
   return (
     <div className="flex gap-2">
-      <div className="flex flex-col justify-between py-0.5 font-mono text-[8px] text-muted-foreground/55">
+      <div className="flex flex-col justify-between py-0.5 text-[8px] font-medium text-muted-foreground/60">
         {["M", "W", "F"].map((d) => (
           <span key={d}>{d}</span>
         ))}
@@ -138,12 +138,12 @@ export function Heatmap({ data }: { data: DayActivity[] }) {
                 <div
                   key={day.date}
                   title={`${day.date} — ${day.reviews} reviews, ${day.minutes} min`}
-                  className="size-[10px] rounded-[2px] transition-transform hover:scale-125"
+                  className="size-[11px] rounded-[3px] transition-transform hover:scale-125"
                   style={{
                     background:
                       intensity === 0
-                        ? "var(--muted)"
-                        : `color-mix(in oklch, var(--primary) ${Math.round(intensity * 100)}%, var(--muted))`,
+                        ? "var(--secondary)"
+                        : `color-mix(in oklch, var(--primary) ${Math.round(intensity * 100)}%, var(--secondary))`,
                   }}
                 />
               );
@@ -168,11 +168,11 @@ export function MasteryBar({ buckets }: { buckets: MasteryBucket[] }) {
   const total = buckets.reduce((sum, bucket) => sum + bucket.count, 0) || 1;
   return (
     <div className="space-y-4">
-      <div className="flex h-2 w-full overflow-hidden rounded-full bg-muted">
+      <div className="flex h-2.5 w-full gap-[3px] overflow-hidden rounded-full">
         {buckets.map((bucket) => (
           <div
             key={bucket.label}
-            className={cn("h-full transition-all", BUCKET_STYLES[bucket.color] ?? "bg-primary")}
+            className={cn("h-full rounded-full transition-all", BUCKET_STYLES[bucket.color] ?? "bg-primary")}
             style={{ width: `${(bucket.count / total) * 100}%` }}
             title={`${bucket.label}: ${bucket.count}`}
           />
@@ -181,9 +181,9 @@ export function MasteryBar({ buckets }: { buckets: MasteryBucket[] }) {
       <div className="grid grid-cols-2 gap-x-6 gap-y-2.5">
         {buckets.map((bucket) => (
           <div key={bucket.label} className="flex items-center gap-2 text-[12px]">
-            <span className={cn("size-1.5 rounded-full", BUCKET_STYLES[bucket.color] ?? "bg-primary")} />
+            <span className={cn("size-2 rounded-full", BUCKET_STYLES[bucket.color] ?? "bg-primary")} />
             <span className="flex-1 text-muted-foreground">{t(bucket.label)}</span>
-            <span className="font-mono text-[11px] tabular-nums">{bucket.count}</span>
+            <span className="text-[11.5px] font-semibold tabular-nums">{bucket.count}</span>
           </div>
         ))}
       </div>
@@ -200,14 +200,14 @@ export function ModeBars({
 }) {
   const max = Math.max(1, ...data.map((d) => d.value));
   return (
-    <div className="space-y-3.5">
+    <div className="space-y-4">
       {data.map((item) => (
-        <div key={item.key} className="space-y-1.5">
+        <div key={item.key} className="space-y-2">
           <div className="flex items-center justify-between text-[12px]">
             <span className="text-muted-foreground">{labels[item.key] ?? item.key}</span>
-            <span className="font-mono text-[11px] tabular-nums">{Math.round(item.value)}</span>
+            <span className="text-[11.5px] font-semibold tabular-nums">{Math.round(item.value)}</span>
           </div>
-          <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+          <div className="h-2 overflow-hidden rounded-full bg-secondary">
             <div
               className="h-full rounded-full bg-primary transition-all duration-500"
               style={{ width: `${(item.value / max) * 100}%` }}

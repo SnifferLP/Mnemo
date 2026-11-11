@@ -17,15 +17,19 @@ export function PageHeader({
   eyebrow?: React.ReactNode;
 }) {
   return (
-    <div className="mb-8 flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
+    <div className="mb-8 flex flex-wrap items-end justify-between gap-x-8 gap-y-5">
       <div className="min-w-0 max-w-2xl">
-        {eyebrow && <div className="eyebrow mb-2.5">{eyebrow}</div>}
-        <h1 className="display truncate text-[34px] leading-[1.05] text-foreground">{title}</h1>
+        {eyebrow && <div className="eyebrow mb-2">{eyebrow}</div>}
+        <h1 className="display min-w-0 truncate text-[32px] leading-[1.06] text-foreground sm:text-[36px]">
+          {title}
+        </h1>
         {description && (
-          <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">{description}</p>
+          <p className="mt-2.5 max-w-xl text-[13px] leading-relaxed text-muted-foreground">
+            {description}
+          </p>
         )}
       </div>
-      {actions && <div className="flex shrink-0 items-center gap-2 pb-0.5">{actions}</div>}
+      {actions && <div className="flex shrink-0 flex-wrap items-center gap-2 pb-1">{actions}</div>}
     </div>
   );
 }
@@ -46,21 +50,30 @@ export function StatCard({
   className?: string;
 }) {
   const accents: Record<string, string> = {
-    primary: "text-primary",
-    success: "text-success",
-    warning: "text-warning",
-    destructive: "text-destructive",
-    muted: "text-muted-foreground",
+    primary: "bg-primary-soft text-primary",
+    success: "bg-success/12 text-success",
+    warning: "bg-warning/16 text-warning",
+    destructive: "bg-destructive/12 text-destructive",
+    muted: "bg-secondary text-muted-foreground",
   };
 
   return (
-    <div className={cn("border-t border-border pt-3", className)}>
-      <div className="flex items-center justify-between gap-3">
-        <div className="eyebrow">{label}</div>
-        {Icon && <Icon className={cn("size-3.5", accents[accent])} />}
+    <div
+      className={cn(
+        "rounded-xl bg-card p-5 shadow-soft transition-shadow hover:shadow-lift",
+        className,
+      )}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <span className="text-[11.5px] font-medium leading-snug text-muted-foreground">{label}</span>
+        {Icon && (
+          <span className={cn("grid size-8 shrink-0 place-items-center rounded-lg", accents[accent])}>
+            <Icon className="size-[15px]" strokeWidth={1.8} />
+          </span>
+        )}
       </div>
-      <div className="metric mt-2 text-[26px] font-medium leading-none text-foreground">{value}</div>
-      {hint && <div className="mt-1.5 text-[11px] leading-snug text-muted-foreground">{hint}</div>}
+      <div className="metric mt-3 text-[30px] font-semibold leading-none text-foreground">{value}</div>
+      {hint && <div className="mt-2 text-[11.5px] leading-snug text-muted-foreground">{hint}</div>}
     </div>
   );
 }
@@ -81,12 +94,16 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center gap-3 border-y border-border px-6 py-14 text-center",
+        "flex flex-col items-center justify-center gap-4 rounded-2xl bg-card px-8 py-16 text-center shadow-soft",
         className,
       )}
     >
-      {Icon && <Icon className="size-5 text-muted-foreground/60" strokeWidth={1.5} />}
-      <div className="space-y-1.5">
+      {Icon && (
+        <span className="grid size-12 place-items-center rounded-2xl bg-primary-soft text-primary">
+          <Icon className="size-5" strokeWidth={1.7} />
+        </span>
+      )}
+      <div className="space-y-2">
         <div className="display text-[22px] leading-tight text-foreground">{title}</div>
         {description && (
           <p className="mx-auto max-w-sm text-[12.5px] leading-relaxed text-muted-foreground">
@@ -94,7 +111,7 @@ export function EmptyState({
           </p>
         )}
       </div>
-      {action && <div className="mt-2">{action}</div>}
+      {action && <div className="mt-1">{action}</div>}
     </div>
   );
 }
@@ -102,11 +119,9 @@ export function EmptyState({
 export function LoadingPanel({ label = "Loading" }: { label?: string }) {
   const { t } = useI18n();
   return (
-    <div className="flex items-center justify-center gap-2.5 py-20">
-      <Loader2 className="size-3.5 animate-spin text-primary" />
-      <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-        {t(label)}…
-      </span>
+    <div className="flex items-center justify-center gap-2.5 py-24">
+      <Loader2 className="size-4 animate-spin text-primary" />
+      <span className="text-[11.5px] font-medium text-muted-foreground">{t(label)}…</span>
     </div>
   );
 }
@@ -114,8 +129,10 @@ export function LoadingPanel({ label = "Loading" }: { label?: string }) {
 export function ErrorPanel({ message, onRetry }: { message: string; onRetry?: () => void }) {
   const { t } = useI18n();
   return (
-    <div className="flex items-start gap-4 border-l-2 border-destructive bg-destructive/[0.04] px-5 py-5">
-      <TriangleAlert className="mt-0.5 size-4 shrink-0 text-destructive" />
+    <div className="flex items-start gap-3.5 rounded-xl bg-destructive/[0.07] p-5">
+      <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-destructive/12 text-destructive">
+        <TriangleAlert className="size-4" />
+      </span>
       <div className="min-w-0 flex-1">
         <p className="text-[13px] leading-relaxed text-foreground">{message}</p>
         {onRetry && (
@@ -130,7 +147,7 @@ export function ErrorPanel({ message, onRetry }: { message: string; onRetry?: ()
 
 export function Kbd({ children }: { children: React.ReactNode }) {
   return (
-    <kbd className="rounded-[3px] border border-border bg-card px-1.5 py-0.5 font-mono text-[9.5px] font-medium text-muted-foreground">
+    <kbd className="rounded-md bg-secondary px-1.5 py-0.5 font-mono text-[9.5px] font-medium text-muted-foreground">
       {children}
     </kbd>
   );
@@ -146,13 +163,11 @@ export function SectionTitle({
   description?: string;
 }) {
   return (
-    <div className="mb-3.5 flex items-end justify-between gap-4 border-b border-border pb-2.5">
+    <div className="mb-4 flex items-end justify-between gap-4">
       <div className="min-w-0">
-        <h2 className="font-mono text-[10px] font-medium uppercase tracking-[0.15em] text-foreground">
-          {title}
-        </h2>
+        <h2 className="text-[16px] font-semibold tracking-[-0.015em] text-foreground">{title}</h2>
         {description && (
-          <p className="mt-1 text-[12px] text-muted-foreground">{description}</p>
+          <p className="mt-1 text-[12.5px] text-muted-foreground">{description}</p>
         )}
       </div>
       {action}

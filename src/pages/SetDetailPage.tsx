@@ -60,48 +60,42 @@ const MODES = [
     title: "Flashcards",
     description: "Flip through every card at your own pace.",
     icon: Layers,
-    accent: "border-primary/20 hover:border-primary/45 hover:bg-primary/[0.045]",
-    iconClass: "border-primary/20 bg-primary/10 text-primary",
+    iconClass: "bg-primary-soft text-primary",
   },
   {
     id: "adaptive",
     title: "Adaptive learning",
     description: "Questions adapt to what you already know.",
     icon: Brain,
-    accent: "border-warning/20 hover:border-warning/45 hover:bg-warning/[0.045]",
-    iconClass: "border-warning/20 bg-warning/10 text-warning",
+    iconClass: "bg-warning/16 text-warning",
   },
   {
     id: "write",
     title: "Writing",
     description: "Type the answer and get instant feedback.",
     icon: Pencil,
-    accent: "border-success/20 hover:border-success/45 hover:bg-success/[0.045]",
-    iconClass: "border-success/20 bg-success/10 text-success",
+    iconClass: "bg-success/12 text-success",
   },
   {
     id: "spaced",
     title: "Spaced repetition",
     description: "Review only what is due today (SM-2).",
     icon: CalendarClock,
-    accent: "border-primary/20 hover:border-primary/45 hover:bg-primary/[0.045]",
-    iconClass: "border-primary/20 bg-primary/10 text-primary",
+    iconClass: "bg-primary-soft text-primary",
   },
   {
     id: "test",
     title: "Practice test",
     description: "Mixed question types with scoring.",
     icon: ListChecks,
-    accent: "border-warning/20 hover:border-warning/45 hover:bg-warning/[0.045]",
-    iconClass: "border-warning/20 bg-warning/10 text-warning",
+    iconClass: "bg-warning/16 text-warning",
   },
   {
     id: "matching",
     title: "Matching game",
     description: "Race the clock to connect pairs.",
     icon: Puzzle,
-    accent: "border-success/20 hover:border-success/45 hover:bg-success/[0.045]",
-    iconClass: "border-success/20 bg-success/10 text-success",
+    iconClass: "bg-success/12 text-success",
   },
 ] as const;
 
@@ -405,9 +399,9 @@ export function SetDetailPage() {
         </div>
 
         {isArchived ? (
-          <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-warning/25 bg-warning/[0.045] px-4 py-4">
+          <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl bg-warning/[0.09] p-5">
             <div className="flex min-w-0 items-start gap-3">
-              <span className="grid size-9 shrink-0 place-items-center rounded-lg border border-warning/20 bg-warning/10 text-warning">
+              <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-warning/16 text-warning">
                 <Archive className="size-4" />
               </span>
               <div>
@@ -429,12 +423,9 @@ export function SetDetailPage() {
                 <button
                   key={mode.id}
                   onClick={() => navigate(`/sets/${id}/study/${mode.id}`)}
-                  className={cn(
-                    "group flex min-h-[132px] flex-col items-start rounded-xl border bg-card/55 p-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:bg-card hover:shadow-[0_8px_30px_-22px_var(--color-foreground)]",
-                    mode.accent,
-                  )}
+                  className="group flex min-h-[152px] flex-col items-start rounded-xl bg-card p-5 text-left shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lift"
                 >
-                  <span className={cn("grid size-9 place-items-center rounded-lg border", mode.iconClass)}>
+                  <span className={cn("grid size-10 place-items-center rounded-xl", mode.iconClass)}>
                     <Icon className="size-[17px]" strokeWidth={1.75} />
                   </span>
                   <span className="mt-3 text-[14px] font-medium leading-tight">{t(mode.title)}</span>
@@ -483,7 +474,7 @@ export function SetDetailPage() {
                   ))}
                 </div>
                 {stats?.matchingBest != null && (
-                  <div className="w-full rounded-xl border border-border/60 bg-muted/20 px-3 py-2 text-center text-[12px] text-muted-foreground">
+                  <div className="w-full rounded-xl bg-secondary/60 px-3 py-2.5 text-center text-[12px] text-muted-foreground">
                     {t("Best matching time")} · <span className="font-medium text-foreground">{stats.matchingBest.toFixed(1)}s</span>
                   </div>
                 )}
@@ -515,7 +506,7 @@ export function SetDetailPage() {
                     </p>
                   )}
                   {stats?.tests.slice(0, 5).map((test) => (
-                    <div key={test.id} className="flex items-center justify-between gap-3 rounded-lg border border-border/60 px-3 py-2">
+                    <div key={test.id} className="flex items-center justify-between gap-3 rounded-lg bg-secondary/50 px-3.5 py-2.5">
                       <div className="text-[12.5px] text-muted-foreground">
                         {new Date(test.createdAt).toLocaleDateString(locale)} ·{" "}
                         {t("{count} questions", { count: test.total })}

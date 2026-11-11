@@ -368,7 +368,7 @@ export function CreatePage() {
               ) : (
                 <div className="max-h-[420px] space-y-1.5 overflow-y-auto pr-1">
                   {parsed.slice(0, 30).map((pair, index) => (
-                    <div key={index} className="rounded-lg border border-border/70 bg-muted/20 px-2.5 py-2">
+                    <div key={index} className="rounded-lg bg-secondary/50 px-3 py-2">
                       <div className="truncate text-[12.5px] font-medium">{pair.front}</div>
                       <div className="truncate text-[12px] text-muted-foreground">{pair.back}</div>
                     </div>
@@ -386,8 +386,10 @@ export function CreatePage() {
 
         <TabsContent value="ai">
           {!hasProvider && (
-            <Card className="mb-4 flex items-center gap-3 border-primary/30 bg-primary/[0.05] p-4">
-              <Sparkles className="size-5 text-primary" />
+            <Card className="mb-4 flex items-center gap-3.5 bg-primary-soft/70 p-5 shadow-none">
+              <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+                <Sparkles className="size-[18px]" strokeWidth={1.8} />
+              </span>
               <div className="flex-1">
                 <div className="text-[13px] font-medium">{t("Connect an AI provider first")}</div>
                 <p className="text-[12px] text-muted-foreground">
@@ -467,10 +469,10 @@ export function CreatePage() {
                         <div
                           key={doc.id}
                           className={cn(
-                            "flex items-center gap-2 rounded-lg border px-2.5 py-2 text-[12.5px] transition-colors",
+                            "flex items-center gap-2 rounded-lg px-3 py-2 text-[12.5px] transition-colors",
                             active
-                              ? "border-primary/40 bg-primary/[0.06]"
-                              : "border-border/70 hover:bg-accent/40",
+                              ? "bg-primary-soft text-primary"
+                              : "bg-secondary/50 hover:bg-secondary/80",
                           )}
                         >
                           <Checkbox
@@ -510,14 +512,14 @@ export function CreatePage() {
               )}
 
               {generated.length > 0 && (
-                <div className="space-y-2 border-t border-border pt-4">
+                <div className="space-y-2 pt-2">
                   <div className="flex items-center justify-between">
                     <Label>{t("Review generated cards")}</Label>
                     <Badge variant="secondary">{t("{count} cards", { count: generated.length })}</Badge>
                   </div>
                   <div className="max-h-[360px] space-y-2 overflow-y-auto pr-1">
                     {generated.map((card, index) => (
-                      <div key={index} className="rounded-xl border border-border/70 p-2.5">
+                      <div key={index} className="rounded-xl bg-secondary/50 p-3">
                         <div className="flex items-start gap-2">
                           <div className="grid flex-1 gap-1.5">
                             <Input

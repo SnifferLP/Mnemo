@@ -228,8 +228,8 @@ export function MagicNotesPage() {
                     <div
                       key={doc.id}
                       className={cn(
-                        "flex items-center gap-2 rounded-lg border px-2.5 py-2 text-[12.5px] transition-colors",
-                        active ? "border-primary/40 bg-primary/[0.06]" : "border-border/70",
+                        "flex items-center gap-2 rounded-lg px-3 py-2 text-[12.5px] transition-colors",
+                        active ? "bg-primary-soft text-primary" : "bg-secondary/50",
                       )}
                     >
                       <Checkbox
@@ -313,8 +313,8 @@ export function MagicNotesPage() {
         <Card className="min-h-[520px] p-5">
           {!result ? (
             <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
-              <span className="grid size-11 place-items-center rounded-xl border border-border bg-card text-primary">
-                <NotebookPen className="size-6" />
+              <span className="grid size-12 place-items-center rounded-2xl bg-primary-soft text-primary">
+                <NotebookPen className="size-6" strokeWidth={1.7} />
               </span>
               <h2 className="text-[16px] font-semibold">{t("Your study material will appear here")}</h2>
               <p className="max-w-sm text-[12.5px] leading-relaxed text-muted-foreground">
@@ -356,7 +356,7 @@ export function MagicNotesPage() {
                       ))}
                     </ul>
                   </div>
-                  <div className="flex flex-wrap gap-2 border-t border-border pt-3">
+                  <div className="flex flex-wrap gap-2 pt-1">
                     <Button variant="outline" size="sm" onClick={saveStudyGuide}>
                       <Save /> {t("Send guide to notes editor")}
                     </Button>
@@ -370,7 +370,7 @@ export function MagicNotesPage() {
               <TabsContent value="cards">
                 <div className="space-y-2">
                   {cards.map((card, index) => (
-                    <div key={index} className="rounded-xl border border-border/70 p-3">
+                    <div key={index} className="rounded-xl bg-secondary/50 p-3">
                       <div className="flex items-start gap-2">
                         <div className="grid flex-1 gap-1.5">
                           <Input
@@ -470,10 +470,10 @@ export function MagicNotesPage() {
                             onClick={() => setQuizChoice(index)}
                             disabled={revealed}
                             className={cn(
-                              "flex w-full items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left text-[13px] transition-colors",
-                              revealed && isAnswer && "border-success/50 bg-success/[0.08]",
-                              revealed && chosen && !isAnswer && "border-destructive/50 bg-destructive/[0.08]",
-                              !revealed && "border-border hover:border-primary/40 hover:bg-accent/40",
+                              "flex w-full items-center gap-2.5 rounded-xl px-4 py-3 text-left text-[13px] transition-colors",
+                              revealed && isAnswer && "bg-success/12 text-success",
+                              revealed && chosen && !isAnswer && "bg-destructive/12 text-destructive",
+                              !revealed && "bg-secondary/50 hover:bg-secondary/80",
                               revealed && !isAnswer && !chosen && "opacity-60",
                             )}
                           >
@@ -492,7 +492,7 @@ export function MagicNotesPage() {
                     </div>
 
                     {quizChoice !== null && currentQuiz.explanation && (
-                      <div className="rounded-xl border border-border/70 bg-muted/20 p-3 text-[12.5px] leading-relaxed">
+                      <div className="rounded-xl bg-secondary/60 p-4 text-[12.5px] leading-relaxed">
                         {currentQuiz.explanation}
                       </div>
                     )}
@@ -508,7 +508,7 @@ export function MagicNotesPage() {
                     <p className="text-[13px] text-muted-foreground">{t("No definitions returned.")}</p>
                   )}
                   {result.definitions.map((definition, index) => (
-                    <div key={index} className="rounded-xl border border-border/70 p-3">
+                    <div key={index} className="rounded-xl bg-secondary/50 p-4">
                       <div className="text-[13px] font-semibold">{definition.term}</div>
                       <p className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground">
                         {definition.definition}

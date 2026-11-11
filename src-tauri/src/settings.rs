@@ -39,7 +39,7 @@ impl Default for AppSettings {
     fn default() -> Self {
         Self {
             theme: "system".into(),
-            accent: "ember".into(),
+            accent: "blue".into(),
             display_font: "editorial".into(),
             language: "en".into(),
             display_name: String::new(),

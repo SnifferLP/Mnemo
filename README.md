@@ -19,7 +19,7 @@ There is no account system, no telemetry and no vendor-hosted service. AI featur
 
 ## Preview
 
-Mnemo uses a calm editorial interface with configurable typography, light and dark themes, and focused study modes.
+Mnemo uses a calm, card-based dashboard: a soft neutral canvas, white surfaces with rounded corners and soft elevation, a cobalt accent and typography that keeps its editorial serif for headings. Light and dark themes share the same structure, and the interface adapts from smaller laptop windows to large desktop screens. The token system and surface rules are documented in [`docs/DESIGN.md`](docs/DESIGN.md).
 
 The repository does not currently include sanitized product screenshots. Screenshot requirements and suggested captures are documented in [`docs/screenshots/README.md`](docs/screenshots/README.md). Please do not add screenshots containing real study content, personal names, API keys or machine-specific paths.
 

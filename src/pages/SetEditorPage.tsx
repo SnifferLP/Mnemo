@@ -199,7 +199,7 @@ export function SetEditorPage() {
         description={t("Changes save automatically. Use the table view to enter many cards quickly.")}
         actions={
           <>
-            <div className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-[11.5px] text-muted-foreground">
+            <div className="flex items-center gap-1.5 rounded-lg bg-secondary/60 px-3 py-2 text-[11.5px] text-muted-foreground">
               {savedAt ? (
                 <>
                   <Check className="size-3.5 text-success" />
@@ -313,7 +313,7 @@ export function SetEditorPage() {
 
               <Button
                 variant="outline"
-                className="w-full border-dashed"
+                className="w-full"
                 onClick={() => draftAnchor.current?.scrollIntoView({ behavior: "smooth", block: "center" })}
               >
                 <Plus /> {t("Add another card")}
@@ -364,7 +364,7 @@ export function SetEditorPage() {
                 {tags.map((tag) => (
                   <span
                     key={tag}
-                    className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] text-primary"
+                    className="inline-flex items-center gap-1 rounded-full bg-primary-soft px-2.5 py-1 text-[11px] font-medium text-primary"
                   >
                     #{tag}
                     <button

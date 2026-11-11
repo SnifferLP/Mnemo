@@ -425,7 +425,7 @@ export function StudySessionPage() {
               className="relative block h-[360px] w-full text-left outline-none"
             >
               <div className={cn("card-3d relative h-full w-full", flipped && "flipped")}>
-                <div className="card-face absolute inset-0 flex flex-col rounded-xl border border-border bg-card p-7">
+                <div className="card-face absolute inset-0 flex flex-col rounded-2xl bg-card p-7 shadow-soft">
                   <div className="mb-3 flex items-center justify-between">
                     <span className="text-[10.5px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                       {t("Front")}
@@ -444,7 +444,7 @@ export function StudySessionPage() {
                   </div>
                 </div>
 
-                <div className="card-face card-face-back absolute inset-0 flex flex-col rounded-xl border border-primary/25 bg-card p-7">
+                <div className="card-face card-face-back absolute inset-0 flex flex-col rounded-2xl bg-card p-7 shadow-lift ring-1 ring-primary/20">
                   <div className="mb-3 flex items-center justify-between">
                     <span className="text-[10.5px] font-semibold uppercase tracking-[0.18em] text-primary/80">
                       {t("Back")}
@@ -473,7 +473,7 @@ export function StudySessionPage() {
                       />
                     )}
                     {current.card.explanation && (
-                      <div className="w-full rounded-xl border border-border/70 bg-background/60 p-3 text-left">
+                      <div className="w-full rounded-xl bg-secondary/60 p-4 text-left">
                         <div className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                           {t("Explanation")}
                         </div>
@@ -490,7 +490,7 @@ export function StudySessionPage() {
           </div>
 
           {hintShown ? (
-            <div className="mt-4 flex items-start gap-2 rounded-xl border border-warning/30 bg-warning/[0.07] p-3 text-[13px]">
+            <div className="mt-4 flex items-start gap-2 rounded-xl bg-warning/10 p-4 text-[13px]">
               <Lightbulb className="mt-0.5 size-4 shrink-0 text-warning" />
               <div>
                 <div className="text-[11px] font-semibold uppercase tracking-wide text-warning">
@@ -540,14 +540,14 @@ export function StudySessionPage() {
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
-                className="border-destructive/30 text-destructive hover:bg-destructive/10"
+                className="bg-destructive/[0.07] text-destructive hover:bg-destructive/12"
                 onClick={() => void record("incorrect").then(advance)}
               >
                 <X /> {t("Still learning")} <Kbd>1</Kbd>
               </Button>
               <Button
                 variant="outline"
-                className="border-success/30 text-success hover:bg-success/10"
+                className="bg-success/[0.08] text-success hover:bg-success/14"
                 onClick={() => void record("correct").then(advance)}
               >
                 <Check /> {t("I knew it")} <Kbd>2</Kbd>
@@ -619,12 +619,12 @@ export function StudySessionPage() {
           {feedback && (
             <Card
               className={cn(
-                "animate-fade-in-up border p-5",
+                "animate-fade-in-up p-5",
                 feedback.correct
-                  ? "border-success/40 bg-success/[0.06]"
+                  ? "bg-success/[0.08]"
                   : feedback.partial
-                    ? "border-warning/40 bg-warning/[0.06]"
-                    : "border-destructive/40 bg-destructive/[0.06]",
+                    ? "bg-warning/[0.09]"
+                    : "bg-destructive/[0.07]",
               )}
             >
               <div className="flex items-center gap-2">
@@ -655,12 +655,12 @@ export function StudySessionPage() {
                   <span className="font-medium text-success">{current.card.back}</span>
                 </div>
                 {current.card.explanation && (
-                  <div className="rounded-lg border border-border/60 bg-background/50 p-2.5">
+                  <div className="rounded-lg bg-secondary/60 p-3">
                     <Markdown className="text-[13px]">{current.card.explanation}</Markdown>
                   </div>
                 )}
                 {feedback.aiFeedback && (
-                  <div className="rounded-lg border border-primary/25 bg-primary/[0.06] p-2.5 text-[12.5px]">
+                  <div className="rounded-lg bg-primary-soft p-3 text-[12.5px]">
                     <span className="font-medium text-primary">{t("AI tutor:")} </span>
                     {feedback.aiFeedback}
                   </div>
@@ -679,7 +679,7 @@ export function StudySessionPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="border-success/30 text-success"
+                      className="bg-success/[0.08] text-success"
                       onClick={() => void submitRecall("correct")}
                     >
                       {t("I knew it")}
@@ -690,7 +690,7 @@ export function StudySessionPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="border-destructive/30 text-destructive"
+                      className="bg-destructive/[0.07] text-destructive"
                       onClick={() => void submitRecall("incorrect")}
                     >
                       {t("Missed it")}
