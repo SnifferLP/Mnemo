@@ -115,6 +115,20 @@ After all four succeed, the publish job downloads the artifacts, verifies that t
 
 The release build requires both updater secrets. The reusable build workflows check for them before compiling. If either is missing, the release fails with an explicit error; normal CI builds remain unsigned and do not need the secrets.
 
+### Flaky runner mirrors
+
+The Ubuntu runner resolves apt against a region mirror that is occasionally
+unreachable. When that happens `apt-get` falls back to per-package retries and
+the job looks hung rather than failed. `build-linux.yml` therefore bounds the
+dependency step with short acquire timeouts, `--no-install-recommends`, a 15
+minute step timeout and a 75 minute job timeout.
+
+If an older tag still stalls there, cancel the run and re-run only the failed
+jobs: the Windows, Arch and source jobs are kept and the publish job runs once
+Linux finishes. A release-triggered run resolves its workflow files from the
+tag itself, so a workflow fix on `main` cannot reach an existing tag — retry the
+run rather than moving the tag.
+
 The workflow preserves the release's pre-release flag. Publish a pre-release only for test builds; publish the normal stable release without the pre-release flag. The in-app Stable Releases channel filters out any GitHub release marked as a pre-release.
 
 ### Update channels and discovery
