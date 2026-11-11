@@ -1,6 +1,6 @@
 # Maintainer: Mnemo project
 pkgname=mnemo
-pkgver=1.2.4rc.1
+pkgver=1.2.4
 pkgrel=1
 pkgdesc="Offline-first AI study platform with flashcards, spaced repetition and tests"
 url="https://github.com/SnifferLP/Mnemo"
@@ -8,8 +8,8 @@ arch=('x86_64')
 license=('MIT')
 depends=('webkit2gtk-4.1' 'gtk3' 'libsoup3' 'hicolor-icon-theme')
 makedepends=('nodejs' 'pnpm' 'rust' 'pkgconf')
-source=("mnemo-1.2.4-rc.1.tar.gz")
-sha256sums=('e31beee3dc62d1165a094ead2dab2c1f51836e77f6808dcc8e825b7d58f7e2ed')
+source=("mnemo-$pkgver.tar.gz")
+sha256sums=('5bf07c9c1290c1dc3c1631059de4120f4cf9cfd022771317a7c89fb0c5ab7664')
 
 build() {
   cd "mnemo-$pkgver"

@@ -18,6 +18,7 @@ import {
 } from "@/lib/settings";
 import type { AppSettings } from "@/lib/types";
 import { errorMessage } from "@/lib/utils";
+import { cacheAppearance } from "@/lib/appearance";
 import { translate } from "@/i18n/core";
 
 interface SettingsContextValue {
@@ -82,6 +83,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     document.documentElement.classList.toggle("reduce-motion", !settings.animations);
   }, [settings.animations]);
+
+  useEffect(() => {
+    if (loading) return;
+    cacheAppearance(settings);
+  }, [loading, settings]);
 
   useEffect(() => {
     applyTheme(settings.theme);

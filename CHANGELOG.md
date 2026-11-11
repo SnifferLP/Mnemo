@@ -2,6 +2,28 @@
 
 All notable changes to Mnemo are documented here. The project follows [Semantic Versioning](https://semver.org/).
 
+## [1.2.4] - 2026-11-11
+
+Final polish for the redesigned interface. All existing navigation, learning modes and stored data are unchanged.
+
+### Added
+
+- A language dropdown in Settings → General. English and German are selectable, the choice applies immediately and is kept across restarts; strings without a translation fall back to English.
+- Archive access from the Folders page. The folder rail now lists the archive next to folders and shows archived sets in place, with restore and permanent deletion available from the same card menu as before.
+- The real Mnemo application icon in the sidebar, in both expanded and collapsed states.
+
+### Changed
+
+- Modern Sans is now the default display font and the first option in Settings → General → Display font. Editorial Serif remains available; previously saved font preferences are preserved.
+- The sidebar is a full-height navigation rail with no rounded outer corners, instead of a floating card. Individual items keep their rounded shape.
+- Collapsed navigation is rebuilt around fixed 36 px items centred on one axis, so every icon — including Create, Settings and the collapse control — shares the same position. Tooltips appear only while collapsed.
+- Startup paints the window background before styles are parsed and replays the cached theme, accent, display font and language, then waits for the persisted settings before rendering the interface.
+
+### Fixed
+
+- Collapsed sidebar icons, the new-set button and the footer controls were offset instead of centred.
+- Starting Mnemo briefly flashed a white page and could render default settings before the persisted ones were loaded.
+
 ## [1.2.4-rc.1] - 2026-11-11
 
 A visual release. Navigation, routes, workflows and stored data are unchanged.

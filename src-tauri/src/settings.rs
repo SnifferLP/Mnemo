@@ -40,7 +40,7 @@ impl Default for AppSettings {
         Self {
             theme: "system".into(),
             accent: "blue".into(),
-            display_font: "editorial".into(),
+            display_font: "modern".into(),
             language: "en".into(),
             display_name: String::new(),
             daily_goal: 30,
@@ -68,7 +68,7 @@ impl AppSettings {
             self.theme = "dark".into();
         }
         if !["editorial", "modern"].contains(&self.display_font.as_str()) {
-            self.display_font = "editorial".into();
+            self.display_font = "modern".into();
         }
         if !["en", "de"].contains(&self.language.as_str()) {
             self.language = "en".into();

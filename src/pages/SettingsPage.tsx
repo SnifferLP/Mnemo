@@ -27,7 +27,13 @@ import {
 import { toast } from "sonner";
 
 import { api } from "@/lib/api";
-import type { AiProviderInfo, AppInfo, ProviderPreset, SaveProviderInput } from "@/lib/types";
+import type {
+  AiProviderInfo,
+  AppInfo,
+  Language,
+  ProviderPreset,
+  SaveProviderInput,
+} from "@/lib/types";
 import { cn, errorMessage, todayIso } from "@/lib/utils";
 import { useSettings } from "@/context/SettingsContext";
 import { useUpdates } from "@/context/UpdateContext";
@@ -58,25 +64,25 @@ const THEMES = [
 
 const DISPLAY_FONTS = [
   {
-    value: "editorial",
-    label: "Editorial Serif",
-    description: "The current editorial serif with fine, expressive strokes.",
-    family: "var(--font-serif)",
-    weight: 400,
-  },
-  {
     value: "modern",
     label: "Modern Sans",
     description: "A sturdier, highly readable sans for maximum clarity.",
     family: "var(--font-modern)",
     weight: 500,
   },
+  {
+    value: "editorial",
+    label: "Editorial Serif",
+    description: "The current editorial serif with fine, expressive strokes.",
+    family: "var(--font-serif)",
+    weight: 400,
+  },
 ] as const;
 
 const LANGUAGES = [
   { value: "en", label: "English" },
   { value: "de", label: "German" },
-] as const;
+] as const satisfies readonly { value: Language; label: string }[];
 
 const REPOSITORY_URL = "https://github.com/SnifferLP/Mnemo";
 
@@ -633,29 +639,25 @@ export function SettingsPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>{t("Language")}</Label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {LANGUAGES.map((language) => {
-                      const active = settings.language === language.value;
-                      return (
-                        <button
-                          key={language.value}
-                          onClick={() => void update({ language: language.value })}
-                          className={cn(
-                            "rounded-xl px-3.5 py-2.5 text-left text-[12px] transition-colors",
-                            active
-                              ? "border-primary/50 bg-primary/[0.07] font-medium text-primary"
-                              : "border-border text-muted-foreground hover:bg-accent/40",
-                          )}
-                        >
+                  <Label htmlFor="language">{t("Language")}</Label>
+                  <Select
+                    value={settings.language}
+                    onValueChange={(value) => void update({ language: value as Language })}
+                  >
+                    <SelectTrigger id="language" aria-label={t("Language")}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {LANGUAGES.map((language) => (
+                        <SelectItem key={language.value} value={language.value}>
                           {t(language.label)}
-                        </button>
-                      );
-                    })}
-                  </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <p className="text-[11px] leading-relaxed text-muted-foreground">
                     {t(
-                      "Changes the interface immediately. Your study content and AI responses are never translated.",
+                      "Changes the interface immediately and is kept across restarts. Study content and AI responses are never translated; strings without a translation fall back to English.",
                     )}
                   </p>
                 </div>

@@ -283,7 +283,7 @@ async fn settings_are_sanitised_and_persisted() {
     let defaults = settings::load(&db.pool).await.expect("defaults");
     assert_eq!(defaults.theme, "system");
     assert_eq!(defaults.accent, "blue");
-    assert_eq!(defaults.display_font, "editorial");
+    assert_eq!(defaults.display_font, "modern");
     assert_eq!(defaults.language, "en");
     assert_eq!(defaults.update_channel, "stable");
     assert_eq!(defaults.daily_goal, 30);
@@ -328,7 +328,7 @@ async fn settings_are_sanitised_and_persisted() {
     invalid.language = "fr".into();
     invalid.update_channel = "nightly".into();
     let sanitised = settings::save(&db.pool, &invalid).await.expect("sanitise");
-    assert_eq!(sanitised.display_font, "editorial");
+    assert_eq!(sanitised.display_font, "modern");
     assert_eq!(sanitised.language, "en");
     assert_eq!(sanitised.update_channel, "stable");
 

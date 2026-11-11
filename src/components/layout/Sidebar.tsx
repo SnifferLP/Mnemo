@@ -1,4 +1,5 @@
-import { NavLink, useNavigate } from "react-router-dom";
+import type { ReactElement } from "react";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
   BarChart3,
   FolderTree,
@@ -12,6 +13,7 @@ import {
   Sparkles,
 } from "lucide-react";
 
+import logoUrl from "../../../assets/icon.png";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/i18n";
 import { useSettings } from "@/context/SettingsContext";
@@ -24,7 +26,7 @@ const GROUPS = [
     items: [
       { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
       { to: "/sets", label: "Study Sets", icon: Library },
-      { to: "/folders", label: "Folders", icon: FolderTree },
+      { to: "/folders", label: "Folders", icon: FolderTree, also: "/archive" },
       { to: "/create", label: "Create", icon: Plus },
     ],
   },
@@ -41,8 +43,52 @@ const GROUPS = [
   },
 ] as const;
 
+/**
+ * One item shape for both sidebar states. Collapsed items are a fixed 36px
+ * square centred with `mx-auto`, so every icon lands on the same vertical axis
+ * no matter how long its label is or which group it belongs to.
+ */
+function itemClasses(collapsed: boolean, active: boolean) {
+  return cn(
+    "group flex items-center rounded-lg font-medium transition-colors",
+    collapsed ? "mx-auto size-9 justify-center text-[13px]" : "gap-2.5 px-3 py-2 text-[12.5px]",
+    active
+      ? "bg-primary-soft text-primary"
+      : "text-muted-foreground hover:bg-secondary/70 hover:text-foreground",
+  );
+}
+
+/**
+ * NavLink resolves this from the router; the collapsed tooltip clones the link,
+ * which would stringify a function className, so it is computed here instead.
+ */
+function isItemActive(pathname: string, to: string, end: boolean) {
+  if (end || to === "/") return pathname === to;
+  return pathname === to || pathname.startsWith(`${to}/`);
+}
+
+/** Collapsed controls need a label; expanded ones would only add noise. */
+function MaybeTooltip({
+  collapsed,
+  label,
+  children,
+}: {
+  collapsed: boolean;
+  label: string;
+  children: ReactElement;
+}) {
+  if (!collapsed) return children;
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      <TooltipContent side="right">{label}</TooltipContent>
+    </Tooltip>
+  );
+}
+
 export function Sidebar() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { settings, update } = useSettings();
   const { t } = useI18n();
   const collapsed = settings.sidebarCollapsed;
@@ -50,23 +96,31 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "relative m-3 mr-0 flex h-[calc(100%-1.5rem)] shrink-0 flex-col overflow-hidden rounded-2xl bg-card shadow-soft transition-[width] duration-200 ease-out",
+        "relative flex h-full shrink-0 flex-col border-r border-border/70 bg-card transition-[width] duration-200 ease-out",
         collapsed ? "w-[72px]" : "w-[248px]",
       )}
     >
-      <div className={cn("flex h-[78px] items-center px-4", collapsed && "justify-center px-0")}>
+      <div
+        className={cn(
+          "flex h-[78px] shrink-0 items-center",
+          collapsed ? "justify-center" : "px-4",
+        )}
+      >
         <button
-          className="focus-ring flex items-center gap-3 rounded-xl"
+          className={cn(
+            "focus-ring flex items-center rounded-xl",
+            collapsed ? "justify-center" : "gap-3",
+          )}
           onClick={() => navigate("/")}
           aria-label={t("Mnemo home")}
         >
-          <span className="relative grid size-9 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground shadow-[0_1px_2px_oklch(0.28_0.04_265/0.2)]">
-            <span className="flex flex-col items-start gap-[3px]">
-              <span className="h-[1.5px] w-4 rounded-full bg-primary-foreground" />
-              <span className="h-[1.5px] w-4 rounded-full bg-primary-foreground/70" />
-              <span className="h-[1.5px] w-2.5 rounded-full bg-primary-foreground/40" />
-            </span>
-          </span>
+          <img
+            src={logoUrl}
+            alt={t("Mnemo logo")}
+            width={36}
+            height={36}
+            className="size-9 shrink-0 rounded-[10px] object-contain"
+          />
           {!collapsed && (
             <span className="flex flex-col items-start leading-none">
               <span className="display text-[22px] leading-none text-foreground">Mnemo</span>
@@ -78,67 +132,64 @@ export function Sidebar() {
         </button>
       </div>
 
-      <div className={cn("px-3 pb-5", collapsed && "px-2.5")}>
-        <Button
-          className={cn("w-full", collapsed && "px-0")}
-          onClick={() => navigate("/create")}
-          size={collapsed ? "icon" : "default"}
-        >
-          <Plus />
-          {!collapsed && <span>{t("New study set")}</span>}
-        </Button>
+      <div className={cn("pb-5", collapsed ? "flex justify-center" : "px-3")}>
+        <MaybeTooltip collapsed={collapsed} label={t("New study set")}>
+          <Button
+            className={cn(collapsed ? "size-9" : "w-full")}
+            onClick={() => navigate("/create")}
+            size={collapsed ? "icon" : "default"}
+            aria-label={t("New study set")}
+          >
+            <Plus />
+            {!collapsed && <span>{t("New study set")}</span>}
+          </Button>
+        </MaybeTooltip>
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-2.5 pb-4 no-scrollbar">
+      <nav
+        className={cn("flex-1 overflow-y-auto pb-4 no-scrollbar", collapsed ? "px-0" : "px-2.5")}
+      >
         {GROUPS.map((group, groupIndex) => (
-          <div key={group.label} className={cn(groupIndex > 0 && "mt-5")}>
+          <div key={group.label} className={cn(groupIndex > 0 && (collapsed ? "mt-4" : "mt-5"))}>
             {!collapsed ? (
               <div className="mb-1.5 px-3 text-[9.5px] font-semibold uppercase tracking-[0.11em] text-muted-foreground/70">
                 {t(group.label)}
               </div>
             ) : (
-              groupIndex > 0 && <div className="mx-2 mb-3 h-px bg-border" />
+              groupIndex > 0 && <div className="mx-auto mb-3 h-px w-6 bg-border" />
             )}
-            <div className="space-y-0.5">
+            <div className={collapsed ? "space-y-1" : "space-y-0.5"}>
               {group.items.map((item) => {
                 const Icon = item.icon;
                 const label = t(item.label);
+                const alsoActive =
+                  "also" in item && item.also ? location.pathname === item.also : false;
+
+                // A plain string className keeps the item styling intact when
+                // the collapsed tooltip clones the link as its trigger.
+                const active = isItemActive(location.pathname, item.to, "end" in item && item.end) || alsoActive;
                 const link = (
                   <NavLink
-                    key={item.to}
                     to={item.to}
-                    end={"end" in item ? item.end : false}
-                    className={({ isActive }) =>
-                      cn(
-                        "group relative flex items-center gap-2.5 rounded-lg py-2 text-[12.5px] font-medium transition-all",
-                        collapsed ? "justify-center px-0" : "px-3",
-                        isActive
-                          ? "bg-primary-soft text-primary"
-                          : "text-muted-foreground hover:bg-secondary/70 hover:text-foreground",
-                      )
-                    }
+                    aria-label={label}
+                    aria-current={active ? "page" : undefined}
+                    className={itemClasses(collapsed, active)}
                   >
-                    {({ isActive }) => (
-                      <>
-                        <Icon
-                          className={cn(
-                            "size-[17px] shrink-0",
-                            isActive ? "text-primary" : "text-muted-foreground/85",
-                          )}
-                          strokeWidth={1.8}
-                        />
-                        {!collapsed && <span className="truncate">{label}</span>}
-                      </>
-                    )}
+                    <Icon
+                      className={cn(
+                        "size-[17px] shrink-0",
+                        active ? "text-primary" : "text-muted-foreground/85",
+                      )}
+                      strokeWidth={1.8}
+                    />
+                    {!collapsed && <span className="truncate">{label}</span>}
                   </NavLink>
                 );
 
-                if (!collapsed) return link;
                 return (
-                  <Tooltip key={item.to}>
-                    <TooltipTrigger asChild>{link}</TooltipTrigger>
-                    <TooltipContent side="right">{label}</TooltipContent>
-                  </Tooltip>
+                  <MaybeTooltip key={item.to} collapsed={collapsed} label={label}>
+                    {link}
+                  </MaybeTooltip>
                 );
               })}
             </div>
@@ -146,49 +197,46 @@ export function Sidebar() {
         ))}
       </nav>
 
-      <div className="p-2.5">
-        <NavLink
-          to="/settings"
-          className={({ isActive }) =>
-            cn(
-              "group relative flex items-center gap-2.5 rounded-lg py-2 text-[12.5px] font-medium transition-all",
-              collapsed ? "justify-center px-0" : "px-3",
-              isActive
-                ? "bg-primary-soft text-primary"
-                : "text-muted-foreground hover:bg-secondary/70 hover:text-foreground",
-            )
-          }
-        >
-          {({ isActive }) => (
-            <>
-              <Settings
-                className={cn(
-                  "size-[17px] shrink-0",
-                  isActive ? "text-primary" : "text-muted-foreground/85",
-                )}
-                strokeWidth={1.8}
-              />
-              {!collapsed && <span>{t("Settings")}</span>}
-            </>
-          )}
-        </NavLink>
+      <div className={cn("pb-3", collapsed ? "flex flex-col items-center gap-1" : "px-2.5")}>
+        <MaybeTooltip collapsed={collapsed} label={t("Settings")}>
+          <NavLink
+            to="/settings"
+            aria-label={t("Settings")}
+            aria-current={isItemActive(location.pathname, "/settings", false) ? "page" : undefined}
+            className={itemClasses(collapsed, isItemActive(location.pathname, "/settings", false))}
+          >
+            <Settings
+              className={cn(
+                "size-[17px] shrink-0",
+                isItemActive(location.pathname, "/settings", false)
+                  ? "text-primary"
+                  : "text-muted-foreground/85",
+              )}
+              strokeWidth={1.8}
+            />
+            {!collapsed && <span>{t("Settings")}</span>}
+          </NavLink>
+        </MaybeTooltip>
 
-        <button
-          onClick={() => update({ sidebarCollapsed: !collapsed })}
-          className={cn(
-            "mt-1 flex w-full items-center gap-2.5 rounded-lg py-2 text-[11.5px] text-muted-foreground/80 transition-colors hover:bg-secondary/70 hover:text-foreground",
-            collapsed ? "justify-center px-0" : "px-3",
-          )}
-        >
-          {collapsed ? (
-            <PanelLeftOpen className="size-4" strokeWidth={1.8} />
-          ) : (
-            <>
-              <PanelLeftClose className="size-4" strokeWidth={1.8} />
-              <span>{t("Collapse")}</span>
-            </>
-          )}
-        </button>
+        <MaybeTooltip collapsed={collapsed} label={t("Expand sidebar")}>
+          <button
+            onClick={() => update({ sidebarCollapsed: !collapsed })}
+            aria-label={t(collapsed ? "Expand sidebar" : "Collapse sidebar")}
+            className={cn(
+              "flex items-center rounded-lg text-[11.5px] text-muted-foreground/80 transition-colors hover:bg-secondary/70 hover:text-foreground",
+              collapsed ? "size-9 justify-center" : "mt-1 w-full gap-2.5 px-3 py-2",
+            )}
+          >
+            {collapsed ? (
+              <PanelLeftOpen className="size-4" strokeWidth={1.8} />
+            ) : (
+              <>
+                <PanelLeftClose className="size-4" strokeWidth={1.8} />
+                <span>{t("Collapse")}</span>
+              </>
+            )}
+          </button>
+        </MaybeTooltip>
       </div>
     </aside>
   );

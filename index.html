@@ -1,9 +1,60 @@
 <!doctype html>
-<html lang="en" class="dark">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Mnemo</title>
+    <!--
+      Paint the shell's background before any stylesheet or script is parsed.
+      This is what prevents a white flash on startup, in both themes.
+    -->
+    <style>
+      html,
+      body {
+        background-color: oklch(0.966 0.008 255);
+      }
+      html.dark,
+      html.dark body {
+        background-color: oklch(0.185 0.014 262);
+      }
+      html {
+        color-scheme: light;
+      }
+      html.dark {
+        color-scheme: dark;
+      }
+    </style>
+    <script>
+      /*
+       * Apply the last known appearance before React mounts, so the first
+       * painted frame already uses the persisted theme, accent, display font
+       * and language instead of the defaults.
+       */
+      (function () {
+        try {
+          var root = document.documentElement;
+          var storedTheme = localStorage.getItem("mnemo.theme");
+          var dark = storedTheme
+            ? storedTheme === "dark"
+            : window.matchMedia("(prefers-color-scheme: dark)").matches;
+          root.classList.toggle("dark", dark);
+
+          var font = localStorage.getItem("mnemo.displayFont");
+          if (font) root.dataset.displayFont = font;
+
+          var accent = localStorage.getItem("mnemo.accent");
+          if (accent) root.dataset.accent = accent;
+
+          var language = localStorage.getItem("mnemo.language");
+          if (language) {
+            root.lang = language;
+            root.dataset.language = language;
+          }
+        } catch (error) {
+          /* localStorage can be unavailable; the app corrects itself on load. */
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

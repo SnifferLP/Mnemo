@@ -17,9 +17,10 @@ work, not a roadmap.
    navigation item, progress and key figures. Everything else is neutral.
 3. **Generous space.** The canvas is padded (24–48 px depending on window width)
    and cards carry 20–24 px of internal padding.
-4. **Editorial headings, modern body.** Instrument Serif stays for page and card
-   titles; Instrument Sans carries interface text; JetBrains Mono is limited to
-   compact numeric metadata.
+4. **Modern Sans by default.** Source Sans 3 is the default display face for page
+   and card titles; Editorial Serif remains selectable in Settings and Instrument
+   Sans carries interface text; JetBrains Mono is limited to compact numeric
+   metadata.
 
 ## Tokens
 
@@ -75,6 +76,32 @@ values as before, so existing installations retain their choice.
 - **Disabled** — 45 % opacity and pointer events disabled.
 - **Reduced motion** — `prefers-reduced-motion` and the in-app animation setting
   both collapse transitions and animations.
+
+## Sidebar
+
+The sidebar is a full-height rail (`w-[248px]`, `w-[72px]` collapsed) with a
+straight edge against the canvas and no outer rounding. Expanded items are
+`gap-2.5 px-3 py-2`. Collapsed items are a fixed 36 px square centred with
+`mx-auto`, which keeps every icon — navigation, Create, Settings and the
+collapse control — on one vertical axis. Labels are hidden, never clipped, and
+their text moves to a tooltip that only exists in the collapsed state.
+
+The rail uses the real application icon (`assets/icon.png`) at 36 px with a
+10 px radius.
+
+## Startup
+
+The first painted frame must match the user's appearance. Three things make
+that work:
+
+1. `index.html` paints `html`/`body` with the theme background before any
+   stylesheet is parsed, and has no hardcoded theme class.
+2. A tiny inline script replays the cached `mnemo.theme`, `mnemo.accent`,
+   `mnemo.displayFont` and `mnemo.language` values from `localStorage`, so the
+   first frame uses the persisted appearance instead of the defaults.
+3. `SettingsProvider` refreshes that cache from SQLite after load, and the app
+   renders a token-consistent logo splash until the settings are available — so
+   no screen is ever drawn with placeholder settings.
 
 ## Dark theme
 

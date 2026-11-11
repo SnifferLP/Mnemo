@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { open } from "@tauri-apps/plugin-dialog";
-import { Archive, ArrowLeft, ArrowRight, Library, Plus, Search, Star, Upload } from "lucide-react";
+import { Archive, ArrowLeft, Library, Plus, Search, Star, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 import { api } from "@/lib/api";
@@ -37,7 +37,6 @@ export function SetsPage({ archivedView = false }: { archivedView?: boolean }) {
   const navigate = useNavigate();
   const { t, tp } = useI18n();
   const [sets, setSets] = useState<StudySetSummary[]>([]);
-  const [archivedCount, setArchivedCount] = useState(0);
   const [folders, setFolders] = useState<FolderNode[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
   const [loading, setLoading] = useState(true);
@@ -60,16 +59,14 @@ export function SetsPage({ archivedView = false }: { archivedView?: boolean }) {
         favoritesOnly,
         sort,
       };
-      const [setList, folderList, tagList, archivedList] = await Promise.all([
+      const [setList, folderList, tagList] = await Promise.all([
         api.sets.list({ ...query, archivedOnly: archivedView }),
         api.folders.list(),
         api.sets.tags(),
-        archivedView ? Promise.resolve([]) : api.sets.list({ archivedOnly: true }),
       ]);
       setSets(setList);
       setFolders(folderList);
       setTags(tagList);
-      setArchivedCount(archivedView ? setList.length : archivedList.length);
     } catch (error) {
       toast.error(t(archivedView ? "Could not load the archive" : "Could not load study sets"), {
         description: errorMessage(error),
@@ -137,8 +134,8 @@ export function SetsPage({ archivedView = false }: { archivedView?: boolean }) {
         actions={
           archivedView ? (
             <Button variant="outline" asChild>
-              <Link to="/sets">
-                <ArrowLeft /> {t("Back to library")}
+              <Link to="/folders">
+                <ArrowLeft /> {t("Back to folders")}
               </Link>
             </Button>
           ) : (
@@ -153,27 +150,6 @@ export function SetsPage({ archivedView = false }: { archivedView?: boolean }) {
           )
         }
       />
-
-      {!archivedView && (
-        <Link
-          to="/archive"
-          className="group mb-5 flex items-center gap-3.5 rounded-xl bg-card px-5 py-4 shadow-soft transition-shadow hover:shadow-lift"
-        >
-          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary">
-            <Archive className="size-4" />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-[13px] font-medium">{t("Archive")}</span>
-            <span className="block text-[11.5px] text-muted-foreground">
-              {t("Sets you are not studying right now, kept safely out of the way.")}
-            </span>
-          </span>
-          <span className="shrink-0 rounded-full bg-secondary px-2.5 py-1 text-[10.5px] font-medium text-muted-foreground">
-            {t("{count} archived", { count: archivedCount })}
-          </span>
-          <ArrowRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
-        </Link>
-      )}
 
       <div className="mb-5 flex flex-wrap items-center gap-2.5 rounded-xl bg-card p-3 shadow-soft">
         <div className="relative min-w-[220px] flex-1">
@@ -248,7 +224,7 @@ export function SetsPage({ archivedView = false }: { archivedView?: boolean }) {
           description={t("Archived study sets will appear here, with their cards and progress intact.")}
           action={
             <Button variant="outline" asChild>
-              <Link to="/sets">{t("Back to library")}</Link>
+              <Link to="/folders">{t("Back to folders")}</Link>
             </Button>
           }
         />

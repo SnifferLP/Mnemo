@@ -19,7 +19,7 @@ There is no account system, no telemetry and no vendor-hosted service. AI featur
 
 ## Preview
 
-Mnemo uses a calm, card-based dashboard: a soft neutral canvas, white surfaces with rounded corners and soft elevation, a cobalt accent and typography that keeps its editorial serif for headings. Light and dark themes share the same structure, and the interface adapts from smaller laptop windows to large desktop screens. The token system and surface rules are documented in [`docs/DESIGN.md`](docs/DESIGN.md).
+Mnemo uses a calm, card-based dashboard: a soft neutral canvas, white surfaces with rounded corners and soft elevation, a cobalt accent and a full-height navigation rail that collapses to an icon strip. Modern Sans is the default typeface, with the editorial serif still available in Settings. Light and dark themes share the same structure, and the interface adapts from smaller laptop windows to large desktop screens. The token system, sidebar and startup rules are documented in [`docs/DESIGN.md`](docs/DESIGN.md).
 
 The repository does not currently include sanitized product screenshots. Screenshot requirements and suggested captures are documented in [`docs/screenshots/README.md`](docs/screenshots/README.md). Please do not add screenshots containing real study content, personal names, API keys or machine-specific paths.
 
@@ -34,7 +34,7 @@ The repository does not currently include sanitized product screenshots. Screens
 - **Application info** — the installed version and a repository link are available at the bottom of Settings.
 - **Automatic updates** — signed in-app updates for Windows x64 and Linux x86_64 AppImage builds, with stable and pre-release channels.
 - **Privacy by default** — local SQLite storage, encrypted provider keys and no analytics.
-- **English and German UI** — locale-aware dates, plural forms and bundled offline fonts.
+- **English and German UI** — a language dropdown in Settings applies immediately and persists across restarts, with locale-aware dates, plural forms and bundled offline fonts.
 
 ## Supported platforms
 

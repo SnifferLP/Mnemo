@@ -26,7 +26,7 @@ install -m644 "$root/licenses/OFL-1.1.txt" "$work/OFL-1.1.txt"
 
 cat > "$work/PKGBUILD" <<'EOF'
 pkgname=mnemo
-pkgver=1.2.4rc.1
+pkgver=1.2.4
 pkgrel=1
 pkgdesc="Offline-first AI study platform with flashcards, spaced repetition and tests"
 url="https://github.com/SnifferLP/Mnemo"
