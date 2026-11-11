@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { open } from "@tauri-apps/plugin-dialog";
-import { Library, Plus, Search, Star, Upload } from "lucide-react";
+import { Archive, ArrowLeft, ArrowRight, Library, Plus, Search, Star, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 import { api } from "@/lib/api";
@@ -33,10 +33,11 @@ const SORTS = [
   { value: "progress", label: "Most mastered" },
 ];
 
-export function SetsPage() {
+export function SetsPage({ archivedView = false }: { archivedView?: boolean }) {
   const navigate = useNavigate();
   const { t, tp } = useI18n();
   const [sets, setSets] = useState<StudySetSummary[]>([]);
+  const [archivedCount, setArchivedCount] = useState(0);
   const [folders, setFolders] = useState<FolderNode[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,26 +53,31 @@ export function SetsPage() {
 
   const load = useCallback(async () => {
     try {
-      const [setList, folderList, tagList] = await Promise.all([
-        api.sets.list({
-          query: search.trim() || null,
-          folderId: folderId === "all" ? null : folderId,
-          tagId: tagId === "all" ? null : tagId,
-          favoritesOnly,
-          sort,
-        }),
+      const query = {
+        query: search.trim() || null,
+        folderId: folderId === "all" ? null : folderId,
+        tagId: tagId === "all" ? null : tagId,
+        favoritesOnly,
+        sort,
+      };
+      const [setList, folderList, tagList, archivedList] = await Promise.all([
+        api.sets.list({ ...query, archivedOnly: archivedView }),
         api.folders.list(),
         api.sets.tags(),
+        archivedView ? Promise.resolve([]) : api.sets.list({ archivedOnly: true }),
       ]);
       setSets(setList);
       setFolders(folderList);
       setTags(tagList);
+      setArchivedCount(archivedView ? setList.length : archivedList.length);
     } catch (error) {
-      toast.error(t("Could not load study sets"), { description: errorMessage(error) });
+      toast.error(t(archivedView ? "Could not load the archive" : "Could not load study sets"), {
+        description: errorMessage(error),
+      });
     } finally {
       setLoading(false);
     }
-  }, [search, folderId, tagId, favoritesOnly, sort, t]);
+  }, [archivedView, search, folderId, tagId, favoritesOnly, sort, t]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => void load(), search ? 220 : 0);
@@ -122,19 +128,52 @@ export function SetsPage() {
   return (
     <div>
       <PageHeader
-        title={t("My study sets")}
-        description={t("Everything you are learning, organised in one place.")}
+        title={t(archivedView ? "Archive" : "My study sets")}
+        description={t(
+          archivedView
+            ? "Archived sets keep their cards, progress and history. Restore one whenever you are ready to study again."
+            : "Everything you are learning, organised in one place.",
+        )}
         actions={
-          <>
-            <Button variant="outline" onClick={() => void importSet()} disabled={importing}>
-              <Upload /> {importing ? t("Importing…") : t("Import")}
+          archivedView ? (
+            <Button variant="outline" asChild>
+              <Link to="/sets">
+                <ArrowLeft /> {t("Back to library")}
+              </Link>
             </Button>
-            <Button onClick={() => setCreating(true)}>
-              <Plus /> {t("New set")}
-            </Button>
-          </>
+          ) : (
+            <>
+              <Button variant="outline" onClick={() => void importSet()} disabled={importing}>
+                <Upload /> {importing ? t("Importing…") : t("Import")}
+              </Button>
+              <Button onClick={() => setCreating(true)}>
+                <Plus /> {t("New set")}
+              </Button>
+            </>
+          )
         }
       />
+
+      {!archivedView && (
+        <Link
+          to="/archive"
+          className="group mb-6 flex items-center gap-3 rounded-xl border border-dashed border-border bg-muted/15 px-4 py-3 transition-colors hover:border-primary/35 hover:bg-primary/[0.04]"
+        >
+          <span className="grid size-9 shrink-0 place-items-center rounded-lg border border-border bg-card text-muted-foreground transition-colors group-hover:border-primary/30 group-hover:text-primary">
+            <Archive className="size-4" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[13px] font-medium">{t("Archive")}</span>
+            <span className="block text-[11.5px] text-muted-foreground">
+              {t("Sets you are not studying right now, kept safely out of the way.")}
+            </span>
+          </span>
+          <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
+            {t("{count} archived", { count: archivedCount })}
+          </span>
+          <ArrowRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
+        </Link>
+      )}
 
       <div className="mb-6 flex flex-wrap items-center gap-2.5 border-y border-border py-3">
         <div className="relative min-w-[220px] flex-1">
@@ -198,9 +237,24 @@ export function SetsPage() {
         </Select>
       </div>
 
-      {loading && sets.length === 0 && <LoadingPanel label={t("Loading study sets")} />}
+      {loading && sets.length === 0 && (
+        <LoadingPanel label={t(archivedView ? "Loading archive" : "Loading study sets")} />
+      )}
 
-      {!loading && sets.length === 0 && (
+      {!loading && sets.length === 0 && archivedView && !hasFilters && (
+        <EmptyState
+          icon={Archive}
+          title={t("Archive is empty")}
+          description={t("Archived study sets will appear here, with their cards and progress intact.")}
+          action={
+            <Button variant="outline" asChild>
+              <Link to="/sets">{t("Back to library")}</Link>
+            </Button>
+          }
+        />
+      )}
+
+      {!loading && sets.length === 0 && !archivedView && (
         <EmptyState
           icon={Library}
           title={t(hasFilters ? "No sets match these filters" : "Your library is empty")}
@@ -231,9 +285,36 @@ export function SetsPage() {
         />
       )}
 
+      {!loading && sets.length === 0 && archivedView && hasFilters && (
+        <EmptyState
+          icon={Archive}
+          title={t("No archived sets match these filters")}
+          description={t("Try a different search term, or clear the filters to see everything.")}
+          action={
+            <Button
+              variant="outline"
+              onClick={() => {
+                setSearch("");
+                setFolderId("all");
+                setTagId("all");
+                setFavoritesOnly(false);
+              }}
+            >
+              {t("Clear filters")}
+            </Button>
+          }
+        />
+      )}
+
       <div className={cn("grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4")}>
         {sets.map((set) => (
-          <StudySetCard key={set.id} set={set} folders={folders} onChanged={load} />
+          <StudySetCard
+            key={set.id}
+            set={set}
+            folders={folders}
+            archived={archivedView}
+            onChanged={load}
+          />
         ))}
       </div>
 

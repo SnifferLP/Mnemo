@@ -82,6 +82,7 @@ pub fn run() {
             commands::library::create_study_set,
             commands::library::update_study_set,
             commands::library::delete_study_set,
+            commands::library::set_study_set_archived,
             commands::library::duplicate_study_set,
             commands::library::set_study_set_favorite,
             commands::library::move_study_set,

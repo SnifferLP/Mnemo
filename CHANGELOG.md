@@ -2,6 +2,27 @@
 
 All notable changes to Mnemo are documented here. The project follows [Semantic Versioning](https://semver.org/).
 
+## [1.2.2] - 2026-11-11
+
+### Added
+
+- Study set archiving with a dedicated Archive view, restore actions and permanent deletion of archived sets. Archived data keeps its cards, progress and learning history but stays out of active study queues and active library statistics.
+- A persistent local-day learning ledger that tracks current and longest consecutive-day streaks.
+- Application version and GitHub repository information at the bottom of Settings, using the existing runtime version metadata.
+
+### Changed
+
+- Redesigned the study set detail view around prominent, colour-accented learning-mode cards with clearer hierarchy and interaction feedback.
+- Streaks now count one local calendar day per qualifying review or completed session, survive restarts and remain available after a set is archived or deleted.
+- The statistics and dashboard views now keep global metrics visible when the active library contains zero sets.
+
+### Fixed
+
+- Global statistics no longer disappear after deleting the last study set.
+- Added database migration and integration coverage for archive state, streak persistence, missed days, same-day sessions, restarts, date boundaries and upgrades from v1.2.1.
+
+This release is published as a **pre-release** while interactive Windows and Linux QA is completed.
+
 ## [1.2.1] - 2026-11-10
 
 ### Changed

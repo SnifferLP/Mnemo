@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
+  Archive,
+  ArchiveRestore,
   Copy,
   FolderInput,
   MoreHorizontal,
@@ -34,10 +36,12 @@ import { Progress } from "@/components/ui/misc";
 export function StudySetCard({
   set,
   folders = [],
+  archived = false,
   onChanged,
 }: {
   set: StudySetSummary;
   folders?: FolderNode[];
+  archived?: boolean;
   onChanged?: () => void;
 }) {
   const navigate = useNavigate();
@@ -60,6 +64,7 @@ export function StudySetCard({
 
   const metadata = [
     tp(set.cardCount, "1 card", "{count} cards"),
+    archived ? t("Archived") : null,
     set.folderName,
     ...set.tags.slice(0, 1).map((tag) => `#${tag}`),
   ].filter(Boolean) as string[];
@@ -95,50 +100,72 @@ export function StudySetCard({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" onClick={(event) => event.stopPropagation()}>
-            <DropdownMenuItem onSelect={() => navigate(`/sets/${set.id}/study/flashcards`)}>
-              <Play /> {t("Study")}
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => navigate(`/sets/${set.id}/edit`)}>
-              <Pencil /> {t("Edit cards")}
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onSelect={() =>
-                run(
-                  () => api.sets.favorite(set.id, !set.isFavorite),
-                  t(set.isFavorite ? "Removed from favorites" : "Added to favorites"),
-                )
-              }
-            >
-              <Star /> {t(set.isFavorite ? "Unfavorite" : "Favorite")}
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onSelect={() =>
-                run(() => api.sets.duplicate(set.id), t("Study set duplicated"))
-              }
-            >
-              <Copy /> {t("Duplicate")}
-            </DropdownMenuItem>
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>
-                <FolderInput /> {t("Move to folder")}
-              </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent>
-                <DropdownMenuItem onSelect={() => run(() => api.sets.move(set.id, null), t("Moved"))}>
-                  {t("No folder")}
+            {archived ? (
+              <>
+                <DropdownMenuItem
+                  onSelect={() =>
+                    run(() => api.sets.setArchived(set.id, false), t("Study set restored"))
+                  }
+                >
+                  <ArchiveRestore /> {t("Restore")}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                {folders.length === 0 && <DropdownMenuLabel>{t("No folders yet")}</DropdownMenuLabel>}
-                {folders.map((node) => (
-                  <DropdownMenuItem
-                    key={node.folder.id}
-                    onSelect={() => run(() => api.sets.move(set.id, node.folder.id), t("Moved"))}
-                  >
-                    {node.folder.name}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
-            <DropdownMenuSeparator />
+              </>
+            ) : (
+              <>
+                <DropdownMenuItem onSelect={() => navigate(`/sets/${set.id}/study/flashcards`)}>
+                  <Play /> {t("Study")}
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => navigate(`/sets/${set.id}/edit`)}>
+                  <Pencil /> {t("Edit cards")}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={() =>
+                    run(
+                      () => api.sets.favorite(set.id, !set.isFavorite),
+                      t(set.isFavorite ? "Removed from favorites" : "Added to favorites"),
+                    )
+                  }
+                >
+                  <Star /> {t(set.isFavorite ? "Unfavorite" : "Favorite")}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={() =>
+                    run(() => api.sets.duplicate(set.id), t("Study set duplicated"))
+                  }
+                >
+                  <Copy /> {t("Duplicate")}
+                </DropdownMenuItem>
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>
+                    <FolderInput /> {t("Move to folder")}
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent>
+                    <DropdownMenuItem onSelect={() => run(() => api.sets.move(set.id, null), t("Moved"))}>
+                      {t("No folder")}
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    {folders.length === 0 && <DropdownMenuLabel>{t("No folders yet")}</DropdownMenuLabel>}
+                    {folders.map((node) => (
+                      <DropdownMenuItem
+                        key={node.folder.id}
+                        onSelect={() => run(() => api.sets.move(set.id, node.folder.id), t("Moved"))}
+                      >
+                        {node.folder.name}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onSelect={() =>
+                    run(() => api.sets.setArchived(set.id, true), t("Study set archived"))
+                  }
+                >
+                  <Archive /> {t("Archive")}
+                </DropdownMenuItem>
+              </>
+            )}
             <DropdownMenuItem
               destructive
               onSelect={() =>

@@ -5,7 +5,7 @@
 //! matching and tests). That keeps time accurate even for modes that do not
 //! review cards individually.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use chrono::{Duration, Local, NaiveDate, Utc};
 use sqlx::SqlitePool;
@@ -113,45 +113,48 @@ pub async fn daily_activity(pool: &SqlitePool, days: i64) -> AppResult<Vec<DayAc
     Ok(out)
 }
 
-async fn streak_days(pool: &SqlitePool) -> AppResult<i64> {
-    // A day counts when there was either a review or a completed session.
-    let rows: Vec<(String,)> = sqlx::query_as(
-        "SELECT DISTINCT day FROM (
-            SELECT substr(datetime(created_at, 'localtime'), 1, 10) AS day FROM card_reviews
-            UNION
-            SELECT substr(datetime(started_at, 'localtime'), 1, 10) AS day
-              FROM study_sessions WHERE duration_seconds >= 60
-         ) ORDER BY day DESC",
-    )
-    .fetch_all(pool)
-    .await?;
-
-    let mut days: Vec<NaiveDate> = rows
-        .iter()
-        .filter_map(|(d,)| NaiveDate::parse_from_str(d, "%Y-%m-%d").ok())
-        .collect();
-    days.sort_unstable_by(|a, b| b.cmp(a));
-
-    let today = Local::now().date_naive();
-    let mut cursor = if days.first() == Some(&today) {
-        today
-    } else {
-        today.pred_opt().unwrap_or(today)
-    };
-
-    let mut streak = 0;
-    for day in days {
-        if day == cursor {
-            streak += 1;
-            match cursor.pred_opt() {
-                Some(prev) => cursor = prev,
-                None => break,
-            }
-        } else if day < cursor {
-            break;
+/// Computes the current and longest consecutive-day streaks from a set of
+/// local calendar days. Current still counts when the last activity was
+/// yesterday, matching how dedicated learning apps let a streak survive until
+/// the end of today.
+pub fn streak_summary(days: &HashSet<NaiveDate>, today: NaiveDate) -> (i64, i64, bool) {
+    let studied_today = days.contains(&today);
+    let yesterday = today - Duration::days(1);
+    let mut current = 0i64;
+    if studied_today || days.contains(&yesterday) {
+        let mut cursor = if studied_today { today } else { yesterday };
+        while days.contains(&cursor) {
+            current += 1;
+            cursor -= Duration::days(1);
         }
     }
-    Ok(streak)
+
+    let mut sorted: Vec<NaiveDate> = days.iter().copied().collect();
+    sorted.sort_unstable();
+    let mut longest = 0i64;
+    let mut run = 0i64;
+    let mut previous: Option<NaiveDate> = None;
+    for day in sorted {
+        run = match previous {
+            Some(prev) if day == prev + Duration::days(1) => run + 1,
+            _ => 1,
+        };
+        longest = longest.max(run);
+        previous = Some(day);
+    }
+
+    (current, longest, studied_today)
+}
+
+async fn learning_day_streak(pool: &SqlitePool) -> AppResult<(i64, i64, bool)> {
+    let rows: Vec<(String,)> = sqlx::query_as("SELECT day FROM learning_days")
+        .fetch_all(pool)
+        .await?;
+    let days: HashSet<NaiveDate> = rows
+        .iter()
+        .filter_map(|(day,)| NaiveDate::parse_from_str(day, "%Y-%m-%d").ok())
+        .collect();
+    Ok(streak_summary(&days, Local::now().date_naive()))
 }
 
 pub async fn totals(pool: &SqlitePool, daily_goal: i64) -> AppResult<Totals> {
@@ -160,19 +163,25 @@ pub async fn totals(pool: &SqlitePool, daily_goal: i64) -> AppResult<Totals> {
     let week_ago =
         (Utc::now() - Duration::days(7)).to_rfc3339_opts(chrono::SecondsFormat::Millis, true);
 
-    let sets_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM study_sets")
-        .fetch_one(pool)
-        .await?;
-    let cards: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM flashcards")
-        .fetch_one(pool)
-        .await?;
+    let sets_count: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM study_sets WHERE archived_at IS NULL")
+            .fetch_one(pool)
+            .await?;
+    let cards: i64 = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM flashcards f JOIN study_sets s ON s.id = f.set_id
+         WHERE s.archived_at IS NULL",
+    )
+    .fetch_one(pool)
+    .await?;
     let mastered: i64 = sqlx::query_scalar(
-        "SELECT COUNT(*) FROM card_progress WHERE interval_days >= 21 AND correct_count >= 2",
+        "SELECT COUNT(*) FROM card_progress p JOIN study_sets s ON s.id = p.set_id
+         WHERE s.archived_at IS NULL AND p.interval_days >= 21 AND p.correct_count >= 2",
     )
     .fetch_one(pool)
     .await?;
     let due_today: i64 = sqlx::query_scalar(
-        "SELECT COUNT(*) FROM card_progress WHERE state <> 'new' AND due_at IS NOT NULL AND due_at <= ?",
+        "SELECT COUNT(*) FROM card_progress p JOIN study_sets s ON s.id = p.set_id
+         WHERE s.archived_at IS NULL AND p.state <> 'new' AND p.due_at IS NOT NULL AND p.due_at <= ?",
     )
     .bind(&now)
     .fetch_one(pool)
@@ -210,7 +219,7 @@ pub async fn totals(pool: &SqlitePool, daily_goal: i64) -> AppResult<Totals> {
     .fetch_one(pool)
     .await?;
 
-    let streak = streak_days(pool).await?;
+    let (streak, longest_streak, studied_today) = learning_day_streak(pool).await?;
     let accuracy_7d = if week_row.0 == 0 {
         0.0
     } else {
@@ -226,6 +235,8 @@ pub async fn totals(pool: &SqlitePool, daily_goal: i64) -> AppResult<Totals> {
         correct_today: today_row.1,
         minutes_today: seconds_to_minutes(seconds_today),
         streak_days: streak,
+        longest_streak,
+        studied_today,
         accuracy_7d,
         reviews_7d: week_row.0,
         study_minutes_7d: seconds_to_minutes(seconds_week),
@@ -236,7 +247,7 @@ pub async fn totals(pool: &SqlitePool, daily_goal: i64) -> AppResult<Totals> {
 
 pub async fn dashboard(pool: &SqlitePool, daily_goal: i64) -> AppResult<DashboardData> {
     let totals = totals(pool, daily_goal).await?;
-    let all = sets::list_summaries(pool, None, None, None, false, "studied").await?;
+    let all = sets::list_summaries(pool, None, None, None, false, false, "studied").await?;
 
     let mut recent: Vec<StudySetSummary> = all
         .iter()
@@ -272,16 +283,21 @@ pub async fn dashboard(pool: &SqlitePool, daily_goal: i64) -> AppResult<Dashboar
 
     let recent_tests: Vec<TestResultSummary> = sqlx::query_as(
         "SELECT t.id, t.set_id, s.title AS set_title, t.score, t.total, t.duration_seconds, t.created_at
-         FROM test_results t LEFT JOIN study_sets s ON s.id = t.set_id
+         FROM test_results t JOIN study_sets s ON s.id = t.set_id
+         WHERE s.archived_at IS NULL
          ORDER BY t.created_at DESC LIMIT 5",
     )
     .fetch_all(pool)
     .await?;
 
-    let recent_sessions: Vec<StudySession> =
-        sqlx::query_as("SELECT * FROM study_sessions ORDER BY started_at DESC LIMIT 6")
-            .fetch_all(pool)
-            .await?;
+    let recent_sessions: Vec<StudySession> = sqlx::query_as(
+        "SELECT ss.* FROM study_sessions ss
+         LEFT JOIN study_sets s ON s.id = ss.set_id
+         WHERE ss.set_id IS NULL OR s.archived_at IS NULL
+         ORDER BY ss.started_at DESC LIMIT 6",
+    )
+    .fetch_all(pool)
+    .await?;
 
     Ok(DashboardData {
         totals,
@@ -356,6 +372,7 @@ pub async fn statistics(
                 (SELECT COUNT(*) FROM card_reviews r WHERE r.set_id = s.id AND r.created_at >= ?2 AND r.outcome = 'correct') AS correct,
                 (SELECT COALESCE(SUM(ss.duration_seconds), 0) FROM study_sessions ss WHERE ss.set_id = s.id AND ss.started_at >= ?2) AS seconds
          FROM study_sets s
+         WHERE s.archived_at IS NULL
          ORDER BY reviews DESC, s.title COLLATE NOCASE",
     )
     .bind(&now)
@@ -383,14 +400,19 @@ pub async fn statistics(
         )
         .collect();
 
-    let bucket_rows: Vec<(String, i64)> =
-        sqlx::query_as("SELECT state, COUNT(*) FROM card_progress GROUP BY state")
-            .fetch_all(pool)
-            .await?;
+    let bucket_rows: Vec<(String, i64)> = sqlx::query_as(
+        "SELECT p.state, COUNT(*) FROM card_progress p
+         JOIN study_sets s ON s.id = p.set_id
+         WHERE s.archived_at IS NULL GROUP BY p.state",
+    )
+    .fetch_all(pool)
+    .await?;
     let mut buckets: HashMap<String, i64> = bucket_rows.into_iter().collect();
     let new_cards: i64 = sqlx::query_scalar(
-        "SELECT COUNT(*) FROM flashcards f LEFT JOIN card_progress p ON p.card_id = f.id
-         WHERE p.card_id IS NULL OR p.state = 'new'",
+        "SELECT COUNT(*) FROM flashcards f
+         JOIN study_sets s ON s.id = f.set_id
+         LEFT JOIN card_progress p ON p.card_id = f.id
+         WHERE s.archived_at IS NULL AND (p.card_id IS NULL OR p.state = 'new')",
     )
     .fetch_one(pool)
     .await?;
@@ -612,4 +634,56 @@ pub async fn set_statistics(
         matching_best,
         cards_detail,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn day(value: &str) -> NaiveDate {
+        NaiveDate::parse_from_str(value, "%Y-%m-%d").expect("valid test date")
+    }
+
+    fn days(values: &[&str]) -> HashSet<NaiveDate> {
+        values.iter().map(|value| day(value)).collect()
+    }
+
+    #[test]
+    fn consecutive_days_extend_current_and_longest_streak() {
+        let summary = streak_summary(
+            &days(&["2026-11-09", "2026-11-10", "2026-11-11"]),
+            day("2026-11-11"),
+        );
+        assert_eq!(summary, (3, 3, true));
+    }
+
+    #[test]
+    fn yesterday_keeps_the_current_streak_alive_until_today_ends() {
+        let summary = streak_summary(&days(&["2026-11-09", "2026-11-10"]), day("2026-11-11"));
+        assert_eq!(summary, (2, 2, false));
+    }
+
+    #[test]
+    fn a_missed_day_breaks_the_current_streak_but_preserves_the_longest() {
+        let summary = streak_summary(
+            &days(&["2026-11-01", "2026-11-02", "2026-11-03", "2026-11-11"]),
+            day("2026-11-11"),
+        );
+        assert_eq!(summary, (1, 3, true));
+
+        let stale = streak_summary(
+            &days(&["2026-11-01", "2026-11-02", "2026-11-03"]),
+            day("2026-11-11"),
+        );
+        assert_eq!(stale, (0, 3, false));
+    }
+
+    #[test]
+    fn streaks_cross_the_new_year_boundary() {
+        let summary = streak_summary(
+            &days(&["2025-12-30", "2025-12-31", "2026-01-01"]),
+            day("2026-01-01"),
+        );
+        assert_eq!(summary, (3, 3, true));
+    }
 }

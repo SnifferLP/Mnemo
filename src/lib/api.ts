@@ -58,6 +58,7 @@ export interface SetListQuery {
   folderId?: string | null;
   tagId?: string | null;
   favoritesOnly?: boolean;
+  archivedOnly?: boolean;
   sort?: string;
 }
 
@@ -79,6 +80,7 @@ export const api = {
         folderId: query.folderId ?? null,
         tagId: query.tagId ?? null,
         favoritesOnly: query.favoritesOnly ?? false,
+        archivedOnly: query.archivedOnly ?? false,
         sort: query.sort ?? "recent",
       }),
     get: (id: string) => call<StudySetDetail>("get_study_set", { id }),
@@ -86,6 +88,8 @@ export const api = {
     update: (id: string, input: UpdateSetInput) =>
       call<StudySetDetail>("update_study_set", { id, input }),
     delete: (id: string) => call<void>("delete_study_set", { id }),
+    setArchived: (id: string, archived: boolean) =>
+      call<void>("set_study_set_archived", { id, archived }),
     duplicate: (id: string) => call<StudySetDetail>("duplicate_study_set", { id }),
     favorite: (id: string, favorite: boolean) =>
       call<void>("set_study_set_favorite", { id, favorite }),

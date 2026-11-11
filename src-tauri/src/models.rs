@@ -38,6 +38,7 @@ pub struct StudySet {
     pub created_at: String,
     pub updated_at: String,
     pub last_studied_at: Option<String>,
+    pub archived_at: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, FromRow)]
@@ -54,6 +55,7 @@ pub struct StudySetSummary {
     pub created_at: String,
     pub updated_at: String,
     pub last_studied_at: Option<String>,
+    pub archived_at: Option<String>,
     pub folder_name: Option<String>,
     pub card_count: i64,
     pub mastered_count: i64,
@@ -459,6 +461,8 @@ pub struct Totals {
     pub correct_today: i64,
     pub minutes_today: f64,
     pub streak_days: i64,
+    pub longest_streak: i64,
+    pub studied_today: bool,
     pub accuracy_7d: f64,
     pub reviews_7d: i64,
     pub study_minutes_7d: f64,

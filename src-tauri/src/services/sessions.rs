@@ -1,3 +1,4 @@
+use chrono::{Local, NaiveDate};
 use sqlx::SqlitePool;
 
 use crate::db::{new_id, now_iso};
@@ -26,18 +27,24 @@ pub async fn finish(
     incorrect: i64,
     duration_seconds: i64,
 ) -> AppResult<StudySession> {
+    let cards_studied = cards_studied.max(0);
+    let duration_seconds = duration_seconds.max(0);
     sqlx::query(
         "UPDATE study_sessions SET ended_at = ?, cards_studied = ?, correct_count = ?,
                 incorrect_count = ?, duration_seconds = ? WHERE id = ?",
     )
     .bind(now_iso())
-    .bind(cards_studied.max(0))
+    .bind(cards_studied)
     .bind(correct.max(0))
     .bind(incorrect.max(0))
-    .bind(duration_seconds.max(0))
+    .bind(duration_seconds)
     .bind(session_id)
     .execute(pool)
     .await?;
+
+    if cards_studied > 0 {
+        record_learning_today(pool).await?;
+    }
 
     let session: Option<StudySession> = sqlx::query_as("SELECT * FROM study_sessions WHERE id = ?")
         .bind(session_id)
@@ -91,6 +98,8 @@ pub async fn record_review(
     .execute(pool)
     .await?;
 
+    record_learning_today(pool).await?;
+
     sqlx::query(
         "INSERT INTO card_reviews (card_id, set_id, mode, rating, outcome, duration_ms, created_at)
          VALUES (?, ?, ?, ?, ?, ?, ?)",
@@ -129,4 +138,20 @@ pub async fn reset_set(pool: &SqlitePool, set_id: &str) -> AppResult<()> {
         .await?;
     cards::ensure_progress(pool, set_id).await?;
     Ok(())
+}
+
+/// Records one local calendar day. The primary key makes repeated reviews and
+/// sessions on the same day idempotent. The ledger intentionally has no study
+/// set foreign key, so history survives deleting or archiving a set.
+pub async fn record_learning_day(pool: &SqlitePool, day: NaiveDate) -> AppResult<()> {
+    sqlx::query("INSERT OR IGNORE INTO learning_days (day, first_recorded_at) VALUES (?, ?)")
+        .bind(day.to_string())
+        .bind(now_iso())
+        .execute(pool)
+        .await?;
+    Ok(())
+}
+
+pub async fn record_learning_today(pool: &SqlitePool) -> AppResult<()> {
+    record_learning_day(pool, Local::now().date_naive()).await
 }

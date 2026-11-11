@@ -18,6 +18,7 @@ pub async fn get_learning_queue(
     limit: Option<usize>,
 ) -> AppResult<Vec<StudyCard>> {
     let pool = state.db().await;
+    sets::ensure_active(&pool, &set_id).await?;
     let all = cards::list(&pool, &set_id).await?;
     let mode = mode.unwrap_or_else(|| "flashcards".into());
     Ok(learning::select_queue(all, &mode, limit.unwrap_or(0)))
@@ -30,6 +31,9 @@ pub async fn start_study_session(
     mode: String,
 ) -> AppResult<String> {
     let pool = state.db().await;
+    if let Some(set_id) = set_id.as_deref() {
+        sets::ensure_active(&pool, set_id).await?;
+    }
     sessions::start(&pool, set_id, &mode).await
 }
 
@@ -63,6 +67,8 @@ pub async fn review_card(
     duration_ms: Option<i64>,
 ) -> AppResult<CardProgress> {
     let pool = state.db().await;
+    let card = cards::get(&pool, &card_id).await?;
+    sets::ensure_active(&pool, &card.set_id).await?;
     sessions::record_review(
         &pool,
         &card_id,
@@ -80,6 +86,7 @@ pub async fn generate_test(
     config: TestConfig,
 ) -> AppResult<Vec<TestQuestion>> {
     let pool = state.db().await;
+    sets::ensure_active(&pool, &set_id).await?;
     let all = cards::list(&pool, &set_id).await?;
     learning::generate_test(&all, &config)
 }
@@ -93,7 +100,7 @@ pub async fn submit_test(
     duration_seconds: i64,
 ) -> AppResult<TestOutcome> {
     let pool = state.db().await;
-    sets::get(&pool, &set_id).await?;
+    sets::ensure_active(&pool, &set_id).await?;
     let settings = crate::settings::load(&pool).await?;
 
     let graded = learning::grade_test(
@@ -172,7 +179,7 @@ pub async fn record_matching_result(
     pairs: i64,
 ) -> AppResult<MatchingOutcome> {
     let pool = state.db().await;
-    sets::get(&pool, &set_id).await?;
+    sets::ensure_active(&pool, &set_id).await?;
     let seconds = seconds.clamp(0.1, 86_400.0);
 
     let previous: Option<f64> =

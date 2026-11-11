@@ -105,7 +105,7 @@ export function DashboardPage() {
         </div>
       )}
 
-      {data && totals && totals.sets === 0 && (
+      {data && totals && totals.sets === 0 && totals.reviews7d === 0 && totals.longestStreak === 0 && (
         <EmptyState
           icon={Brain}
           title={t("Your library is empty")}
@@ -125,7 +125,7 @@ export function DashboardPage() {
         />
       )}
 
-      {data && totals && totals.sets > 0 && (
+      {data && totals && (totals.sets > 0 || totals.reviews7d > 0 || totals.longestStreak > 0) && (
         <div>
           <section className="grid gap-x-10 gap-y-6 border-y border-border py-6 sm:grid-cols-2 lg:grid-cols-[1.35fr_1fr_1fr_1fr]">
             <div>
@@ -179,8 +179,19 @@ export function DashboardPage() {
                 </span>
               </div>
               <p className="mt-2 text-[11px] text-muted-foreground">
-                {t(totals.streakDays > 0 ? "Keep it alive today." : "Study once to begin.")}
+                {t(
+                  totals.studiedToday
+                    ? "Today counts."
+                    : totals.streakDays > 0
+                      ? "Study today to keep it going."
+                      : "Study once to begin.",
+                )}
               </p>
+              {totals.longestStreak > 0 && (
+                <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.1em] text-muted-foreground/70">
+                  {t("Best {count} days", { count: totals.longestStreak })}
+                </p>
+              )}
             </div>
 
             <div>

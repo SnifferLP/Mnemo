@@ -92,6 +92,8 @@ Publishing a GitHub Release triggers `.github/workflows/release.yml`. It runs th
 
 After all four succeed, the publish job downloads the artifacts, writes `SHA256SUMS`, and attaches the files to the existing release. The workflow does not create the release or tag.
 
+The workflow preserves the release's pre-release flag. Publish a pre-release when interactive platform QA is still outstanding, and keep the flag explicit in the GitHub UI.
+
 Create the tag and release only after the version commit is on `main` and CI is green. The release must be published rather than left as a draft to start the workflow.
 
 ## 5. Verify artifacts and manual QA

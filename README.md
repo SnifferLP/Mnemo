@@ -25,12 +25,13 @@ The repository does not currently include sanitized product screenshots. Screens
 
 ## Features
 
-- **Library management** — folders, tags, favourites, search, sorting, duplication and progress reset.
+- **Library management** — folders, tags, favourites, search, sorting, duplication, archiving and progress reset.
 - **Rich cards** — front and back text, explanations, hints, images and audio attachments.
 - **Study modes** — flashcards, adaptive learning, writing practice, SM-2 spaced repetition, practice tests and a matching game.
-- **Insights** — due counts, daily goals, streaks, activity ranges, a 30-week heatmap and per-set progress.
+- **Insights** — due counts, daily goals, timezone-stable current and longest streaks, activity ranges, a 30-week heatmap and per-set progress.
 - **Import and export** — CSV, TSV, JSON and Quizlet-style text import; CSV, TSV, JSON, Markdown and PDF export.
 - **Optional AI** — card generation, document summaries, study guides and tutor chat through OpenAI-compatible APIs, Gemini or local Ollama.
+- **Application info** — the installed version and a repository link are available at the bottom of Settings.
 - **Privacy by default** — local SQLite storage, encrypted provider keys and no analytics.
 - **English and German UI** — locale-aware dates, plural forms and bundled offline fonts.
 
@@ -226,7 +227,7 @@ cargo clippy --all-targets --all-features -- -D warnings
 cargo test --all-targets
 ```
 
-The current local suite contains **23 Rust unit tests**, **9 Rust integration tests** and **20 frontend tests**. The frontend suite covers learning-round state, settings merging and translation catalogues. Rust tests cover SM-2 scheduling, answer normalization, import/export, AI request construction, settings sanitization, database migrations, CRUD, statistics, persistence and upgrade behavior.
+The current local suite contains **27 Rust unit tests**, **13 Rust integration tests** and **20 frontend tests**. The frontend suite covers learning-round state, settings merging and translation catalogues. Rust tests cover SM-2 scheduling, answer normalization, import/export, AI request construction, settings sanitization, database migrations, CRUD, statistics, persistence, archive round trips and upgrade behavior.
 
 GitHub Actions also runs the Rust suite on Windows, builds the NSIS installer, builds Linux AppImage/`.deb` bundles and builds the Arch package. A successful compile is not a substitute for manual testing of Windows installation, display scaling, audio playback and other interactive behavior; see [`docs/RELEASING.md`](docs/RELEASING.md) for the manual QA checklist.
 

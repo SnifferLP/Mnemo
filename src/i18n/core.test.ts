@@ -11,6 +11,8 @@ describe("translation catalogue", () => {
     expect(translate("de", "Leave session")).toBe("Sitzung verlassen");
     expect(translate("de", "Card image")).toBe("Kartenbild");
     expect(translate("de", "Play")).toBe("Abspielen");
+    expect(translate("de", "Archive")).toBe("Archiv");
+    expect(translate("de", "Restore")).toBe("Wiederherstellen");
   });
 
   it("uses consistent flashcard terminology", () => {

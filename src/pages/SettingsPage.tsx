@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { open, save } from "@tauri-apps/plugin-dialog";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import {
   CheckCircle2,
   Database,
   Download,
+  ExternalLink,
   Info,
   Loader2,
   Moon,
@@ -74,6 +76,8 @@ const LANGUAGES = [
   { value: "en", label: "English" },
   { value: "de", label: "German" },
 ] as const;
+
+const REPOSITORY_URL = "https://github.com/SnifferLP/Mnemo";
 
 const ACCENTS = [
   { id: "ember", label: "Ember", color: "oklch(0.58 0.15 38)" },
@@ -1182,6 +1186,24 @@ export function SettingsPage() {
           </div>
         </TabsContent>
       </Tabs>
+
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-4 font-mono text-[9px] uppercase tracking-[0.12em] text-muted-foreground/70">
+        <span>{t("Application")} · Mnemo {info?.version ?? "…"}</span>
+        <button
+          type="button"
+          onClick={() =>
+            void openUrl(REPOSITORY_URL).catch((error) =>
+              toast.error(t("Could not open the repository"), {
+                description: errorMessage(error),
+              }),
+            )
+          }
+          className="inline-flex items-center gap-1.5 normal-case tracking-normal transition-colors hover:text-foreground"
+        >
+          {t("View repository on GitHub")}
+          <ExternalLink className="size-3" />
+        </button>
+      </div>
 
       <ProviderDialog
         open={dialogOpen}

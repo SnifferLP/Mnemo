@@ -2,12 +2,10 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   ArrowRight,
-  BarChart3,
   BookOpenCheck,
   Clock,
   Flame,
   Layers,
-  Plus,
   Target,
   TrendingUp,
 } from "lucide-react";
@@ -95,22 +93,7 @@ export function StatisticsPage() {
         </div>
       )}
 
-      {data && totals && totals.sets === 0 && (
-        <EmptyState
-          icon={BarChart3}
-          title={t("Nothing to measure yet")}
-          description={t(
-            "Statistics appear after you create a set and review a few cards. With an empty library every value is zero.",
-          )}
-          action={
-            <Button onClick={() => navigate("/create")}>
-              <Plus /> {t("Create a study set")}
-            </Button>
-          }
-        />
-      )}
-
-      {data && totals && totals.sets > 0 && (
+      {data && totals && (
         <div>
           <section className="grid gap-x-10 gap-y-6 border-y border-border py-6 sm:grid-cols-2 lg:grid-cols-4">
             <div>
@@ -174,9 +157,14 @@ export function StatisticsPage() {
                 <div className="eyebrow">{t("Daily rhythm")}</div>
                 <h2 className="display mt-1.5 text-[24px] leading-tight">{t("Reviews per day")}</h2>
               </div>
-              <div className="flex items-center gap-2 font-mono text-[9px] uppercase tracking-[0.12em] text-muted-foreground">
+              <div className="flex flex-wrap items-center gap-2 font-mono text-[9px] uppercase tracking-[0.12em] text-muted-foreground">
                 <Flame className="size-3.5 text-warning" />
                 {t("{count} day streak", { count: totals.streakDays })}
+                {totals.longestStreak > 0 && (
+                  <span className="text-muted-foreground/60">
+                    · {t("Best {count} days", { count: totals.longestStreak })}
+                  </span>
+                )}
               </div>
             </div>
             <div className="mt-6">

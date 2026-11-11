@@ -799,4 +799,37 @@ export const de: Record<string, string> = {
   Markdown: "Markdown",
   "PDF (print friendly)": "PDF (druckfreundlich)",
   Custom: "Benutzerdefiniert",
+
+  // Learning modes, archive and application information
+  Archive: "Archiv",
+  Archived: "Archiviert",
+  Restore: "Wiederherstellen",
+  "Study set archived": "Lernset archiviert",
+  "Study set restored": "Lernset wiederhergestellt",
+  "Could not load the archive": "Das Archiv konnte nicht geladen werden",
+  "Loading archive": "Archiv wird geladen",
+  "Back to library": "Zurück zur Bibliothek",
+  "Back to archive": "Zurück zum Archiv",
+  "Sets you are not studying right now, kept safely out of the way.":
+    "Lernsets, die du gerade nicht lernst – sicher beiseitegelegt.",
+  "{count} archived": "{count} archiviert",
+  "Archive is empty": "Das Archiv ist leer",
+  "Archived study sets will appear here, with their cards and progress intact.":
+    "Archivierte Lernsets erscheinen hier – mit Karten und Fortschritt.",
+  "No archived sets match these filters": "Keine archivierten Lernsets passen zu diesen Filtern",
+  "Learning modes": "Lernmodi",
+  "Choose how to study": "Wähle, wie du lernen möchtest",
+  "{count} cards ready": "{count} Karten bereit",
+  Start: "Starten",
+  "This set is archived": "Dieses Lernset ist archiviert",
+  "Its cards, progress and history are preserved. Restore it to use the learning modes again.":
+    "Karten, Fortschritt und Verlauf bleiben erhalten. Stelle es wieder her, um die Lernmodi zu nutzen.",
+  "This study set is archived. Restore it before studying.":
+    "Dieses Lernset ist archiviert. Stelle es vor dem Lernen wieder her.",
+  "Today counts.": "Heute zählt.",
+  "Study today to keep it going.": "Lerne heute, damit die Serie weiterläuft.",
+  "Best {count} days": "Bestwert: {count} Tage",
+  Application: "Anwendung",
+  "View repository on GitHub": "Repository auf GitHub ansehen",
+  "Could not open the repository": "Das Repository konnte nicht geöffnet werden",
 };

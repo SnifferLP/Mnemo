@@ -15,13 +15,14 @@ pub async fn list_summaries(
     folder_id: Option<String>,
     tag_id: Option<String>,
     favorites_only: bool,
+    archived_only: bool,
     sort: &str,
 ) -> AppResult<Vec<StudySetSummary>> {
     let now = now_iso();
     let mut sql = String::from(
         "SELECT s.id, s.title, s.description, s.folder_id, s.language_front, s.language_back,
                 s.is_favorite, s.source, s.created_at, s.updated_at, s.last_studied_at,
-                f.name AS folder_name,
+                s.archived_at, f.name AS folder_name,
                 (SELECT COUNT(*) FROM flashcards c WHERE c.set_id = s.id) AS card_count,
                 (SELECT COUNT(*) FROM card_progress p WHERE p.set_id = s.id
                     AND p.interval_days >= 21 AND p.correct_count >= 2) AS mastered_count,
@@ -60,6 +61,11 @@ pub async fn list_summaries(
         sql.push_str(" AND s.is_favorite = ?");
         binds.push("1".into());
     }
+    sql.push_str(if archived_only {
+        " AND s.archived_at IS NOT NULL"
+    } else {
+        " AND s.archived_at IS NULL"
+    });
 
     let order = match sort {
         "title" => "s.title COLLATE NOCASE ASC",
@@ -101,6 +107,30 @@ pub async fn get(pool: &SqlitePool, id: &str) -> AppResult<StudySet> {
         .fetch_optional(pool)
         .await?;
     set.ok_or_else(|| not_found("study set"))
+}
+
+/// Returns a set only while it is in the active library. Learning commands use
+/// this guard so an archived set cannot enter a queue, review or test by URL.
+pub async fn ensure_active(pool: &SqlitePool, id: &str) -> AppResult<StudySet> {
+    let set = get(pool, id).await?;
+    if set.archived_at.is_some() {
+        return Err(validation(
+            "This study set is archived. Restore it before studying.",
+        ));
+    }
+    Ok(set)
+}
+
+pub async fn set_archived(pool: &SqlitePool, id: &str, archived: bool) -> AppResult<()> {
+    get(pool, id).await?;
+    let now = now_iso();
+    sqlx::query("UPDATE study_sets SET archived_at = ?, updated_at = ? WHERE id = ?")
+        .bind(if archived { Some(now) } else { None })
+        .bind(now_iso())
+        .bind(id)
+        .execute(pool)
+        .await?;
+    Ok(())
 }
 
 pub async fn detail(pool: &SqlitePool, id: &str) -> AppResult<StudySetDetail> {

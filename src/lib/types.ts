@@ -51,6 +51,7 @@ export interface StudySet {
   createdAt: string;
   updatedAt: string;
   lastStudiedAt: string | null;
+  archivedAt: string | null;
 }
 
 export interface StudySetSummary extends StudySet {
@@ -161,6 +162,8 @@ export interface Totals {
   correctToday: number;
   minutesToday: number;
   streakDays: number;
+  longestStreak: number;
+  studiedToday: boolean;
   accuracy7d: number;
   reviews7d: number;
   studyMinutes7d: number;

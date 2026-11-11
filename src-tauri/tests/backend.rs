@@ -3,6 +3,7 @@
 
 use std::path::{Path, PathBuf};
 
+use chrono::{Duration, Local};
 use mnemo_lib::db;
 use mnemo_lib::export;
 use mnemo_lib::import;
@@ -99,6 +100,7 @@ async fn crud_reviews_statistics_and_restart() {
         Some("powerhouse".into()),
         None,
         None,
+        false,
         false,
         "recent",
     )
@@ -689,4 +691,272 @@ fn database_file_is_created_in_temp_dir() {
     // Guards against accidentally running against the real app data directory.
     let dir = std::env::temp_dir();
     assert!(Path::new(&dir).exists());
+}
+
+#[tokio::test]
+async fn upgrading_a_v121_database_preserves_data_and_adds_archive() {
+    use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
+
+    let dir = std::env::temp_dir().join(format!("mnemo-v121-upgrade-{}", Uuid::new_v4()));
+    std::fs::create_dir_all(&dir).expect("temp dir");
+    let db_path = dir.join("mnemo.db");
+    let old_dir = dir.join("migrations");
+    std::fs::create_dir_all(&old_dir).expect("migration dir");
+    for name in ["0001_init.sql", "0002_review_foreign_keys.sql"] {
+        let source = std::fs::read_to_string(
+            Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("migrations")
+                .join(name),
+        )
+        .expect("read v1.2.1 schema");
+        std::fs::write(old_dir.join(name), source).expect("stage v1.2.1 schema");
+    }
+
+    let pool = SqlitePoolOptions::new()
+        .max_connections(1)
+        .connect_with(
+            SqliteConnectOptions::new()
+                .filename(&db_path)
+                .create_if_missing(true)
+                .foreign_keys(true),
+        )
+        .await
+        .expect("open v1.2.1 database");
+    sqlx::migrate::Migrator::new(old_dir.as_path())
+        .await
+        .expect("v1.2.1 migrator")
+        .run(&pool)
+        .await
+        .expect("apply v1.2.1 schema");
+
+    let now = "2026-01-01T12:00:00.000Z";
+    sqlx::query(
+        "INSERT INTO study_sets (id, title, created_at, updated_at)
+         VALUES ('s1', 'Existing set', ?, ?)",
+    )
+    .bind(now)
+    .bind(now)
+    .execute(&pool)
+    .await
+    .expect("set");
+    sqlx::query(
+        "INSERT INTO flashcards (id, set_id, front, back, created_at, updated_at)
+         VALUES ('c1', 's1', 'A', '1', ?, ?)",
+    )
+    .bind(now)
+    .bind(now)
+    .execute(&pool)
+    .await
+    .expect("card");
+    sqlx::query("INSERT INTO card_progress (card_id, set_id) VALUES ('c1', 's1')")
+        .execute(&pool)
+        .await
+        .expect("progress");
+    sqlx::query(
+        "INSERT INTO card_reviews (card_id, set_id, mode, rating, outcome, duration_ms, created_at)
+         VALUES ('c1', 's1', 'flashcards', 1, 'correct', 100, ?)",
+    )
+    .bind(now)
+    .execute(&pool)
+    .await
+    .expect("review");
+    sqlx::query(
+        "INSERT INTO study_sessions
+         (id, set_id, mode, started_at, ended_at, duration_seconds, cards_studied)
+         VALUES ('session1', 's1', 'flashcards', ?, ?, 60, 1)",
+    )
+    .bind(now)
+    .bind(now)
+    .execute(&pool)
+    .await
+    .expect("session");
+    pool.close().await;
+
+    let upgraded = db::init(&db_path).await.expect("v1.2.2 upgrade");
+    let archived: Option<String> =
+        sqlx::query_scalar("SELECT archived_at FROM study_sets WHERE id = 's1'")
+            .fetch_one(&upgraded)
+            .await
+            .expect("archived_at column");
+    assert!(archived.is_none(), "existing sets stay active");
+    let cards: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM flashcards WHERE set_id = 's1'")
+        .fetch_one(&upgraded)
+        .await
+        .expect("cards survived");
+    let reviews: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM card_reviews WHERE set_id = 's1'")
+        .fetch_one(&upgraded)
+        .await
+        .expect("reviews survived");
+    let learning_days: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM learning_days")
+        .fetch_one(&upgraded)
+        .await
+        .expect("learning day backfill");
+    assert_eq!(cards, 1);
+    assert_eq!(reviews, 1);
+    assert!(learning_days >= 1);
+
+    upgraded.close().await;
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[tokio::test]
+async fn streak_counts_each_local_day_once_and_survives_restart() {
+    let mut db = TestDb::new().await;
+    let created = sets::create(&db.pool, set_input("Streak set", vec![card("A", "1")]))
+        .await
+        .expect("create set");
+
+    // Two completed sessions on the same calendar day must count once.
+    for _ in 0..2 {
+        let session_id = sessions::start(&db.pool, Some(created.set.id.clone()), "flashcards")
+            .await
+            .expect("start session");
+        sessions::finish(&db.pool, &session_id, 1, 1, 0, 60)
+            .await
+            .expect("finish session");
+    }
+
+    let today = Local::now().date_naive();
+    for offset in [1, 2] {
+        sessions::record_learning_day(&db.pool, today - Duration::days(offset))
+            .await
+            .expect("record prior day");
+    }
+
+    let today_rows: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM learning_days WHERE day = ?")
+        .bind(today.to_string())
+        .fetch_one(&db.pool)
+        .await
+        .expect("today rows");
+    assert_eq!(today_rows, 1, "multiple sessions must collapse to one day");
+
+    let stats = statistics::statistics(&db.pool, 30, 30)
+        .await
+        .expect("statistics");
+    assert_eq!(stats.totals.streak_days, 3);
+    assert_eq!(stats.totals.longest_streak, 3);
+    assert!(stats.totals.studied_today);
+
+    db.reopen().await;
+    let after_restart = statistics::statistics(&db.pool, 30, 30)
+        .await
+        .expect("statistics after restart");
+    assert_eq!(after_restart.totals.streak_days, 3);
+    assert_eq!(after_restart.totals.longest_streak, 3);
+    assert!(after_restart.totals.studied_today);
+
+    db.cleanup().await;
+}
+
+#[tokio::test]
+async fn archived_sets_are_hidden_from_active_workflows_and_can_be_restored() {
+    let mut db = TestDb::new().await;
+    let created = sets::create(
+        &db.pool,
+        set_input("Archive me", vec![card("A", "1"), card("B", "2")]),
+    )
+    .await
+    .expect("create");
+    sessions::record_review(
+        &db.pool,
+        &created.cards[0].card.id,
+        Outcome::Correct,
+        "flashcards",
+        100,
+    )
+    .await
+    .expect("review");
+
+    sets::set_archived(&db.pool, &created.set.id, true)
+        .await
+        .expect("archive");
+
+    let active = sets::list_summaries(&db.pool, None, None, None, false, false, "recent")
+        .await
+        .expect("active sets");
+    assert!(active.is_empty());
+
+    let archived = sets::list_summaries(&db.pool, None, None, None, false, true, "recent")
+        .await
+        .expect("archived sets");
+    assert_eq!(archived.len(), 1);
+    assert!(archived[0].archived_at.is_some());
+
+    let detail = sets::detail(&db.pool, &created.set.id)
+        .await
+        .expect("archived detail");
+    assert_eq!(detail.cards.len(), 2);
+    assert_eq!(detail.cards[0].progress.correct_count, 1);
+
+    assert!(
+        sets::ensure_active(&db.pool, &created.set.id)
+            .await
+            .is_err(),
+        "archived sets must not enter active learning workflows"
+    );
+
+    let stats = statistics::statistics(&db.pool, 30, 30)
+        .await
+        .expect("statistics");
+    assert_eq!(stats.totals.sets, 0);
+    assert_eq!(stats.totals.cards, 0);
+    assert!(stats.sets.is_empty());
+    assert_eq!(stats.totals.streak_days, 1);
+
+    db.reopen().await;
+    let after_restart = sets::list_summaries(&db.pool, None, None, None, false, true, "recent")
+        .await
+        .expect("archive after restart");
+    assert_eq!(after_restart.len(), 1);
+
+    sets::set_archived(&db.pool, &created.set.id, false)
+        .await
+        .expect("restore");
+    let restored = sets::list_summaries(&db.pool, None, None, None, false, false, "recent")
+        .await
+        .expect("restored sets");
+    assert_eq!(restored.len(), 1);
+    assert!(restored[0].archived_at.is_none());
+
+    sets::delete(&db.pool, &created.set.id)
+        .await
+        .expect("delete restored set");
+    db.cleanup().await;
+}
+
+#[tokio::test]
+async fn global_statistics_remain_available_after_deleting_the_last_set() {
+    let db = TestDb::new().await;
+    let created = sets::create(&db.pool, set_input("Temporary", vec![card("A", "1")]))
+        .await
+        .expect("create");
+    sessions::record_review(
+        &db.pool,
+        &created.cards[0].card.id,
+        Outcome::Correct,
+        "flashcards",
+        100,
+    )
+    .await
+    .expect("review");
+    sets::delete(&db.pool, &created.set.id)
+        .await
+        .expect("delete");
+
+    let stats = statistics::statistics(&db.pool, 30, 30)
+        .await
+        .expect("global statistics after deleting the last set");
+    assert_eq!(stats.totals.sets, 0);
+    assert!(stats.sets.is_empty());
+    assert_eq!(stats.totals.streak_days, 1);
+    assert_eq!(stats.totals.longest_streak, 1);
+    assert!(stats.totals.studied_today);
+
+    let dashboard = statistics::dashboard(&db.pool, 30)
+        .await
+        .expect("dashboard after deleting the last set");
+    assert_eq!(dashboard.totals.sets, 0);
+    assert_eq!(dashboard.activity.len(), 14);
+
+    db.cleanup().await;
 }

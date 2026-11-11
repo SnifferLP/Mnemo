@@ -410,6 +410,7 @@ mod tests {
             created_at: "2024-01-01T00:00:00.000Z".into(),
             updated_at: "2024-01-01T00:00:00.000Z".into(),
             last_studied_at: None,
+            archived_at: None,
         };
         let card = Flashcard {
             id: "c1".into(),

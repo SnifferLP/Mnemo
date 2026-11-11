@@ -56,6 +56,7 @@ export default function App() {
             <Route element={<AppShell />}>
               <Route path="/" element={<DashboardPage />} />
               <Route path="/sets" element={<SetsPage />} />
+              <Route path="/archive" element={<SetsPage archivedView />} />
               <Route path="/sets/:id" element={<SetDetailPage />} />
               <Route path="/sets/:id/edit" element={<SetEditorPage />} />
               <Route path="/folders" element={<FoldersPage />} />

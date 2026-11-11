@@ -3,7 +3,10 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { save } from "@tauri-apps/plugin-dialog";
 import {
+  Archive,
+  ArchiveRestore,
   ArrowLeft,
+  ArrowRight,
   Brain,
   CalendarClock,
   Copy,
@@ -57,36 +60,48 @@ const MODES = [
     title: "Flashcards",
     description: "Flip through every card at your own pace.",
     icon: Layers,
+    accent: "border-primary/20 hover:border-primary/45 hover:bg-primary/[0.045]",
+    iconClass: "border-primary/20 bg-primary/10 text-primary",
   },
   {
     id: "adaptive",
     title: "Adaptive learning",
     description: "Questions adapt to what you already know.",
     icon: Brain,
+    accent: "border-warning/20 hover:border-warning/45 hover:bg-warning/[0.045]",
+    iconClass: "border-warning/20 bg-warning/10 text-warning",
   },
   {
     id: "write",
     title: "Writing",
     description: "Type the answer and get instant feedback.",
     icon: Pencil,
+    accent: "border-success/20 hover:border-success/45 hover:bg-success/[0.045]",
+    iconClass: "border-success/20 bg-success/10 text-success",
   },
   {
     id: "spaced",
     title: "Spaced repetition",
     description: "Review only what is due today (SM-2).",
     icon: CalendarClock,
+    accent: "border-primary/20 hover:border-primary/45 hover:bg-primary/[0.045]",
+    iconClass: "border-primary/20 bg-primary/10 text-primary",
   },
   {
     id: "test",
     title: "Practice test",
     description: "Mixed question types with scoring.",
     icon: ListChecks,
+    accent: "border-warning/20 hover:border-warning/45 hover:bg-warning/[0.045]",
+    iconClass: "border-warning/20 bg-warning/10 text-warning",
   },
   {
     id: "matching",
     title: "Matching game",
     description: "Race the clock to connect pairs.",
     icon: Puzzle,
+    accent: "border-success/20 hover:border-success/45 hover:bg-success/[0.045]",
+    iconClass: "border-success/20 bg-success/10 text-success",
   },
 ] as const;
 
@@ -179,6 +194,23 @@ export function SetDetailPage() {
     }
   };
 
+  const changeArchive = async (archived: boolean) => {
+    if (!detail) return;
+    try {
+      await api.sets.setArchived(id, archived);
+      setDetail({
+        ...detail,
+        set: {
+          ...detail.set,
+          archivedAt: archived ? new Date().toISOString() : null,
+        },
+      });
+      toast.success(t(archived ? "Study set archived" : "Study set restored"));
+    } catch (err) {
+      toast.error(errorMessage(err));
+    }
+  };
+
   const remove = async () => {
     if (!detail) return;
     if (
@@ -225,13 +257,15 @@ export function SetDetailPage() {
   if (loading) return <LoadingPanel label={t("Loading study set")} />;
   if (error || !detail) return <ErrorPanel message={error ?? t("Study set not found")} onRetry={() => void load()} />;
 
+  const isArchived = Boolean(detail.set.archivedAt);
+
   return (
     <div>
       <Link
-        to="/sets"
+        to={isArchived ? "/archive" : "/sets"}
         className="mb-4 inline-flex items-center gap-1.5 text-[12.5px] text-muted-foreground transition-colors hover:text-foreground"
       >
-        <ArrowLeft className="size-3.5" /> {t("All study sets")}
+        <ArrowLeft className="size-3.5" /> {t(isArchived ? "Back to archive" : "All study sets")}
       </Link>
 
       <PageHeader
@@ -253,9 +287,15 @@ export function SetDetailPage() {
         }
         actions={
           <>
-            <Button onClick={() => navigate(`/sets/${id}/study/flashcards`)}>
-              <Play /> {t("Study")}
-            </Button>
+            {isArchived ? (
+              <Button onClick={() => void changeArchive(false)}>
+                <ArchiveRestore /> {t("Restore")}
+              </Button>
+            ) : (
+              <Button onClick={() => navigate(`/sets/${id}/study/flashcards`)}>
+                <Play /> {t("Study")}
+              </Button>
+            )}
             <Button variant="outline" onClick={() => navigate(`/sets/${id}/edit`)}>
               <Pencil /> {t("Edit")}
             </Button>
@@ -272,21 +312,32 @@ export function SetDetailPage() {
                 <DropdownMenuItem onSelect={() => void duplicate()}>
                   <Copy /> {t("Duplicate")}
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  onSelect={() => {
-                    if (!window.confirm(t("Reset all progress, reviews and tests for this set?"))) return;
-                    api.learning
-                      .resetProgress(id)
-                      .then(() => {
-                        toast.success(t("Progress reset"));
-                        void load();
-                      })
-                      .catch((err) => toast.error(errorMessage(err)));
-                  }}
-                >
-                  <RefreshCw /> {t("Reset progress")}
-                </DropdownMenuItem>
+                {!isArchived && (
+                  <DropdownMenuItem
+                    onSelect={() => {
+                      if (!window.confirm(t("Reset all progress, reviews and tests for this set?"))) return;
+                      api.learning
+                        .resetProgress(id)
+                        .then(() => {
+                          toast.success(t("Progress reset"));
+                          void load();
+                        })
+                        .catch((err) => toast.error(errorMessage(err)));
+                    }}
+                  >
+                    <RefreshCw /> {t("Reset progress")}
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator />
+                {isArchived ? (
+                  <DropdownMenuItem onSelect={() => void changeArchive(false)}>
+                    <ArchiveRestore /> {t("Restore")}
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem onSelect={() => void changeArchive(true)}>
+                    <Archive /> {t("Archive")}
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem destructive onSelect={() => void remove()}>
                   <Trash2 /> {t("Delete set")}
                 </DropdownMenuItem>
@@ -298,6 +349,7 @@ export function SetDetailPage() {
 
       <div className="mb-5 flex flex-wrap items-center gap-1.5">
         <Badge variant="secondary">{t("{count} cards", { count: detail.cards.length })}</Badge>
+        {isArchived && <Badge variant="warning"><Archive className="mr-1 size-3" /> {t("Archived")}</Badge>}
         {detail.folderName && <Badge variant="outline">{t("Folder")} · {detail.folderName}</Badge>}
         {detail.tags.map((tag) => (
           <Badge key={tag} variant="muted">
@@ -339,24 +391,65 @@ export function SetDetailPage() {
         />
       </div>
 
-      <div className="mb-7 grid grid-cols-2 gap-px border-y border-border bg-border sm:grid-cols-3 xl:grid-cols-6">
-        {MODES.map((mode) => {
-          const Icon = mode.icon;
-          return (
-            <button
-              key={mode.id}
-              onClick={() => navigate(`/sets/${id}/study/${mode.id}`)}
-              className="group flex flex-col items-start gap-2 bg-background p-4 text-left transition-colors hover:bg-card"
-            >
-              <Icon className="size-4 text-primary" strokeWidth={1.75} />
-              <span className="mt-1 text-[12.5px] font-medium leading-tight">{t(mode.title)}</span>
-              <span className="text-[10.5px] leading-snug text-muted-foreground">
-                {t(mode.description)}
+      <section className="mb-7">
+        <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <div className="eyebrow">{t("Learning modes")}</div>
+            <h2 className="display mt-1.5 text-[25px] leading-tight">{t("Choose how to study")}</h2>
+          </div>
+          {!isArchived && (
+            <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-muted-foreground">
+              {t("{count} cards ready", { count: detail.cards.length })}
+            </span>
+          )}
+        </div>
+
+        {isArchived ? (
+          <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-warning/25 bg-warning/[0.045] px-4 py-4">
+            <div className="flex min-w-0 items-start gap-3">
+              <span className="grid size-9 shrink-0 place-items-center rounded-lg border border-warning/20 bg-warning/10 text-warning">
+                <Archive className="size-4" />
               </span>
-            </button>
-          );
-        })}
-      </div>
+              <div>
+                <div className="text-[13px] font-medium">{t("This set is archived")}</div>
+                <p className="mt-1 max-w-2xl text-[11.5px] leading-relaxed text-muted-foreground">
+                  {t("Its cards, progress and history are preserved. Restore it to use the learning modes again.")}
+                </p>
+              </div>
+            </div>
+            <Button variant="outline" onClick={() => void changeArchive(false)}>
+              <ArchiveRestore /> {t("Restore")}
+            </Button>
+          </div>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {MODES.map((mode) => {
+              const Icon = mode.icon;
+              return (
+                <button
+                  key={mode.id}
+                  onClick={() => navigate(`/sets/${id}/study/${mode.id}`)}
+                  className={cn(
+                    "group flex min-h-[132px] flex-col items-start rounded-xl border bg-card/55 p-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:bg-card hover:shadow-[0_8px_30px_-22px_var(--color-foreground)]",
+                    mode.accent,
+                  )}
+                >
+                  <span className={cn("grid size-9 place-items-center rounded-lg border", mode.iconClass)}>
+                    <Icon className="size-[17px]" strokeWidth={1.75} />
+                  </span>
+                  <span className="mt-3 text-[14px] font-medium leading-tight">{t(mode.title)}</span>
+                  <span className="mt-1 text-[11.5px] leading-snug text-muted-foreground">
+                    {t(mode.description)}
+                  </span>
+                  <span className="mt-auto flex items-center gap-1 pt-3 text-[10.5px] font-medium uppercase tracking-[0.1em] text-muted-foreground transition-colors group-hover:text-foreground">
+                    {t("Start")} <ArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" />
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </section>
 
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>

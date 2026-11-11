@@ -68,6 +68,7 @@ pub async fn list_study_sets(
     folder_id: Option<String>,
     tag_id: Option<String>,
     favorites_only: Option<bool>,
+    archived_only: Option<bool>,
     sort: Option<String>,
 ) -> AppResult<Vec<StudySetSummary>> {
     let pool = state.db().await;
@@ -77,6 +78,7 @@ pub async fn list_study_sets(
         folder_id,
         tag_id,
         favorites_only.unwrap_or(false),
+        archived_only.unwrap_or(false),
         sort.as_deref().unwrap_or("recent"),
     )
     .await
@@ -111,6 +113,16 @@ pub async fn update_study_set(
 pub async fn delete_study_set(state: State<'_, AppState>, id: String) -> AppResult<()> {
     let pool = state.db().await;
     sets::delete(&pool, &id).await
+}
+
+#[tauri::command]
+pub async fn set_study_set_archived(
+    state: State<'_, AppState>,
+    id: String,
+    archived: bool,
+) -> AppResult<()> {
+    let pool = state.db().await;
+    sets::set_archived(&pool, &id, archived).await
 }
 
 #[tauri::command]
