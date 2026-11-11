@@ -42,10 +42,10 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.tag || github.event.release.tag_name }}
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
       - name: Create source archive
@@ -66,7 +66,7 @@ jobs:
           fi
 
       - name: Upload source archive
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: mnemo-source-archive
           if-no-files-found: error
@@ -79,7 +79,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Download all build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: mnemo-*
           path: release
@@ -170,7 +170,7 @@ jobs:
           cat release/SHA256SUMS
 
       - name: Attach artifacts to the GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ env.TAG }}
           prerelease: ${{ env.RELEASE_PRERELEASE == 'true' }}

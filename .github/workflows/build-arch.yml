@@ -16,6 +16,7 @@ jobs:
   arch:
     name: Arch Linux package
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     container:
       image: archlinux:latest
     steps:
@@ -27,7 +28,7 @@ jobs:
             webkit2gtk-4.1 gtk3 libsoup3 hicolor-icon-theme \
             pkgconf patchelf librsvg
           useradd -m builder
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.ref }}
       - name: Install pnpm
@@ -41,7 +42,7 @@ jobs:
           chown -R builder:builder "$GITHUB_WORKSPACE"
           su - builder -c "cd '$GITHUB_WORKSPACE' && ./packaging/arch/build-binary-package.sh"
       - name: Upload Arch package
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: mnemo-arch-package
           if-no-files-found: error

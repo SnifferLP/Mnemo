@@ -124,7 +124,10 @@ index metadata it did fetch, prints `0 upgraded, 181 newly installed`, and walks
 the package list one download timeout at a time, so the step looks hung instead
 of failed.
 
-`build-linux.yml` no longer uses the runner's mirror routing. The dependency step:
+`scripts/ci/install-linux-deps.sh` is the single implementation of this workaround. Both
+`build-linux.yml` (release bundles) and `ci.yml` (Rust checks) call it, so the two jobs
+cannot drift apart. It takes an optional package list and defaults to the full Tauri
+dependency set. The step:
 
 - prints the runner's apt configuration, `resolv.conf` and the DNS result for
   each Ubuntu host;
@@ -139,7 +142,8 @@ of failed.
 - bounds every acquire (`Acquire::http::Timeout=10`, `Acquire::https::Timeout=10`,
   `Acquire::Retries=2`, `Acquire::ForceIPv4`, `DPkg::Lock::Timeout=60`), installs
   with `--no-install-recommends`, verifies every package with `dpkg -s`, and runs
-  inside a five minute step timeout (75 minutes for the job).
+  inside a five minute step timeout (30 minutes for the Rust checks job, 75 minutes for the
+  Linux bundle job).
 
 Measured on the release recovery run: 2 m 37 s for update plus install.
 
