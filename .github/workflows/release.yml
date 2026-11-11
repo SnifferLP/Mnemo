@@ -80,16 +80,18 @@ jobs:
         run: |
           set -euo pipefail
           version="${RELEASE_TAG#v}"
-          windows_asset="Mnemo_${version}_x64-setup.exe"
-          linux_asset="Mnemo_${version}_amd64.AppImage"
-          windows_sig="release/${windows_asset}.sig"
-          linux_sig="release/${linux_asset}.sig"
+          windows_name="Mnemo_${version}_x64-setup.exe"
+          linux_name="Mnemo_${version}_amd64.AppImage"
+          windows_file="$(find release -type f -name "$windows_name" -print -quit)"
+          linux_file="$(find release -type f -name "$linux_name" -print -quit)"
+          windows_sig="$(find release -type f -name "${windows_name}.sig" -print -quit)"
+          linux_sig="$(find release -type f -name "${linux_name}.sig" -print -quit)"
 
-          if [ ! -s "release/${windows_asset}" ] || [ ! -s "release/${linux_asset}" ]; then
+          if [ -z "$windows_file" ] || [ -z "$linux_file" ]; then
             echo "error: expected Windows and Linux updater artifacts are missing." >&2
             exit 1
           fi
-          if [ ! -s "$windows_sig" ] || [ ! -s "$linux_sig" ]; then
+          if [ -z "$windows_sig" ] || [ -z "$linux_sig" ]; then
             echo "error: updater signatures are missing; refusing to publish a manifest that cannot be verified." >&2
             exit 1
           fi
@@ -98,9 +100,9 @@ jobs:
             --arg version "$version" \
             --arg notes "$RELEASE_BODY" \
             --arg pub_date "$PUBLISHED_AT" \
-            --arg windows_url "https://github.com/${REPOSITORY}/releases/download/${RELEASE_TAG}/${windows_asset}" \
+            --arg windows_url "https://github.com/${REPOSITORY}/releases/download/${RELEASE_TAG}/${windows_name}" \
             --arg windows_signature "$(cat "$windows_sig")" \
-            --arg linux_url "https://github.com/${REPOSITORY}/releases/download/${RELEASE_TAG}/${linux_asset}" \
+            --arg linux_url "https://github.com/${REPOSITORY}/releases/download/${RELEASE_TAG}/${linux_name}" \
             --arg linux_signature "$(cat "$linux_sig")" \
             '{
               version: $version,
