@@ -53,6 +53,9 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
   const initialized = useRef(false);
   const lastChannel = useRef(settings.updateChannel);
   const channelRef = useRef(settings.updateChannel);
+  // Automatic checks are opt-out. A ref keeps the start-up flow on the value
+  // that is current when the asynchronous support probe resolves.
+  const autoCheckRef = useRef(settings.autoUpdateCheck);
   const inFlight = useRef<Promise<UpdateCandidate | null> | null>(null);
   const notified = useRef(new Set<string>());
 
@@ -132,12 +135,13 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
     initialized.current = true;
     channelRef.current = settings.updateChannel;
     lastChannel.current = settings.updateChannel;
+    autoCheckRef.current = settings.autoUpdateCheck;
 
     api.updates
       .support()
       .then(async (info) => {
         setSupport(info);
-        if (info.supported) {
+        if (info.supported && autoCheckRef.current) {
           // Read the current channel, not the value captured when startup
           // began: the user may have switched it while the support call ran.
           await runCheck(channelRef.current, false);
@@ -146,7 +150,7 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
       .catch(() => {
         // Startup must never be blocked or interrupted by update discovery.
       });
-  }, [loading, runCheck, settings.updateChannel]);
+  }, [loading, runCheck, settings.autoUpdateCheck, settings.updateChannel]);
 
   useEffect(() => {
     if (loading || !initialized.current) return;
@@ -159,10 +163,12 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
     setError(null);
     setLastCheck("idle");
 
-    if (support?.supported) {
+    // Switching channels is a background check as well, so it stays silent
+    // while automatic checks are disabled. The manual button always works.
+    if (support?.supported && settings.autoUpdateCheck) {
       void runCheck(settings.updateChannel, false);
     }
-  }, [loading, runCheck, settings.updateChannel, support?.supported]);
+  }, [loading, runCheck, settings.autoUpdateCheck, settings.updateChannel, support?.supported]);
 
   const check = useCallback(
     (manual = true) => runCheck(settings.updateChannel, manual),

@@ -1203,7 +1203,7 @@ export function SettingsPage() {
                 <CardTitle>{t("Updates")}</CardTitle>
                 <p className="text-[12.5px] leading-relaxed text-muted-foreground">
                   {t(
-                    "Choose how Mnemo looks for new versions. Checks run quietly in the background at startup, and nothing is installed without your confirmation.",
+                    "Choose how Mnemo looks for new versions. Nothing is installed without your confirmation.",
                   )}
                 </p>
               </CardHeader>
@@ -1254,6 +1254,25 @@ export function SettingsPage() {
                     )}
                   </p>
                 </div>
+
+                <Separator />
+
+                <label className="flex items-center justify-between gap-3">
+                  <div>
+                    <div className="text-[13px] font-medium">
+                      {t("Check for updates automatically")}
+                    </div>
+                    <div className="text-[11.5px] leading-relaxed text-muted-foreground">
+                      {t(
+                        "Looks for new versions at startup and in the background. Manual checks stay available either way.",
+                      )}
+                    </div>
+                  </div>
+                  <Switch
+                    checked={settings.autoUpdateCheck}
+                    onCheckedChange={(checked) => void update({ autoUpdateCheck: checked })}
+                  />
+                </label>
 
                 <Separator />
 

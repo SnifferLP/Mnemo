@@ -23,6 +23,7 @@ export interface AppSettings {
   sidebarCollapsed: boolean;
   shuffleCards: boolean;
   animations: boolean;
+  autoUpdateCheck: boolean;
   updateChannel: UpdateChannel;
 }
 

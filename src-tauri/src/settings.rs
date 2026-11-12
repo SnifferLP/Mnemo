@@ -31,6 +31,9 @@ pub struct AppSettings {
     pub sidebar_collapsed: bool,
     pub shuffle_cards: bool,
     pub animations: bool,
+    /// Automatic update checks. Stored settings from older versions do not
+    /// contain this field, so it defaults to `true` for existing users too.
+    pub auto_update_check: bool,
     /// "stable" | "prerelease"
     pub update_channel: String,
 }
@@ -57,6 +60,7 @@ impl Default for AppSettings {
             sidebar_collapsed: false,
             shuffle_cards: false,
             animations: true,
+            auto_update_check: true,
             update_channel: "stable".into(),
         }
     }

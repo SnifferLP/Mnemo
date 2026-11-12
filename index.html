@@ -50,6 +50,11 @@
             root.lang = language;
             root.dataset.language = language;
           }
+
+          /* Motion follows the in-app preference only; see index.css. */
+          if (localStorage.getItem("mnemo.animations") === "false") {
+            root.classList.add("reduce-motion");
+          }
         } catch (error) {
           /* localStorage can be unavailable; the app corrects itself on load. */
         }

@@ -24,7 +24,6 @@ export const de: Record<string, string> = {
   Review: "Wiederholen",
   Collapse: "Einklappen",
   "New study set": "Neues Lernset",
-  "A quiet archive": "Ein stilles Archiv",
 
   // Common
   Loading: "Wird geladen …",
@@ -871,8 +870,11 @@ export const de: Record<string, string> = {
   "Your current installation is unchanged. {message}":
     "Deine aktuelle Installation bleibt unverändert. {message}",
   "Could not check for updates": "Updates konnten nicht geprüft werden",
-  "Choose how Mnemo looks for new versions. Checks run quietly in the background at startup, and nothing is installed without your confirmation.":
-    "Lege fest, wie Mnemo nach neuen Versionen sucht. Beim Start wird im Hintergrund geprüft; ohne deine Bestätigung wird nichts installiert.",
+  "Choose how Mnemo looks for new versions. Nothing is installed without your confirmation.":
+    "Lege fest, wie Mnemo nach neuen Versionen sucht. Ohne deine Bestätigung wird nichts installiert.",
+  "Check for updates automatically": "Automatisch nach Updates suchen",
+  "Looks for new versions at startup and in the background. Manual checks stay available either way.":
+    "Sucht beim Start und im Hintergrund nach neuen Versionen. Manuelle Prüfungen bleiben in jedem Fall möglich.",
   "Supported automatic updates": "Unterstützte automatische Updates",
   "Windows x64 installers and Linux x86_64 AppImages can update themselves. Debian packages and Arch packages are updated by their package manager.":
     "Windows-x64-Installer und Linux-x86_64-AppImages können sich selbst aktualisieren. Debian- und Arch-Pakete werden über die Paketverwaltung aktualisiert.",
@@ -887,8 +889,6 @@ export const de: Record<string, string> = {
   Starred: "Markiert",
   "Star term": "Begriff markieren",
   "Remove star": "Markierung entfernen",
-  "Flashcard preview": "Kartenvorschau",
-  "See the cards before you start": "Sieh dir die Karten vor dem Start an",
   "Start learning": "Jetzt lernen",
   "Start flashcards": "Karteikarten starten",
   "Flip card": "Karte umdrehen",

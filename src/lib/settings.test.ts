@@ -62,6 +62,26 @@ describe("settings merging", () => {
     });
   });
 
+  it("keeps automatic update checks enabled by default", () => {
+    expect(DEFAULT_SETTINGS.autoUpdateCheck).toBe(true);
+
+    // A stored settings object from an older version has no such key; merging
+    // an unrelated patch must not turn automatic checks off.
+    const previous = { ...DEFAULT_SETTINGS, theme: "light" as const };
+    const next = mergeSettings(previous, { accent: "teal" });
+    expect(next.autoUpdateCheck).toBe(true);
+  });
+
+  it("stores the automatic update preference independently", () => {
+    const off = mergeSettings(DEFAULT_SETTINGS, { autoUpdateCheck: false });
+    expect(off.autoUpdateCheck).toBe(false);
+    expect(off.updateChannel).toBe("stable");
+
+    const channelOnly = mergeSettings(off, { updateChannel: "prerelease" });
+    expect(channelOnly.autoUpdateCheck).toBe(false);
+    expect(channelOnly.updateChannel).toBe("prerelease");
+  });
+
   it("changes the update channel without touching other preferences", () => {
     const next = mergeSettings(
       { ...DEFAULT_SETTINGS, theme: "dark" as const, dailyGoal: 75 },

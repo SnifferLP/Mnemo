@@ -572,12 +572,14 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
+/*
+ * Motion is an in-app decision, not an OS one.
+ *
+ * WebView2 on Windows reports `prefers-reduced-motion: reduce` as soon as the
+ * Windows "Animation effects" setting is off, which includes many virtual and
+ * remote sessions. A media query here therefore removed every animation from
+ * the Windows build while the Linux build kept them. Settings → Animations is
+ * the single source of truth: it toggles `.reduce-motion` above (and the class
+ * is also applied from the start-up script for the first frame), so both
+ * platforms behave identically and motion can still be switched off.
+ */

@@ -109,7 +109,7 @@ export function Sidebar() {
         <button
           className={cn(
             "focus-ring flex items-center rounded-xl",
-            collapsed ? "justify-center" : "gap-3",
+            collapsed ? "justify-center" : "gap-2.5",
           )}
           onClick={() => navigate("/")}
           aria-label={t("Mnemo home")}
@@ -117,17 +117,12 @@ export function Sidebar() {
           <img
             src={logoUrl}
             alt={t("Mnemo logo")}
-            width={36}
-            height={36}
-            className="size-9 shrink-0 rounded-[10px] object-contain"
+            width={32}
+            height={32}
+            className="size-8 shrink-0 rounded-[9px] object-contain"
           />
           {!collapsed && (
-            <span className="flex flex-col items-start leading-none">
-              <span className="display text-[22px] leading-none text-foreground">Mnemo</span>
-              <span className="mt-1.5 text-[9px] font-medium uppercase tracking-[0.13em] text-muted-foreground">
-                {t("A quiet archive")}
-              </span>
-            </span>
+            <span className="display text-[21px] leading-none text-foreground">Mnemo</span>
           )}
         </button>
       </div>

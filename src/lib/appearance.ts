@@ -12,6 +12,7 @@ const KEYS = {
   accent: "mnemo.accent",
   displayFont: "mnemo.displayFont",
   language: "mnemo.language",
+  animations: "mnemo.animations",
 } as const;
 
 function storage(): Storage | null {
@@ -30,6 +31,9 @@ export function cacheAppearance(settings: AppSettings) {
     store.setItem(KEYS.accent, settings.accent);
     store.setItem(KEYS.displayFont, settings.displayFont);
     store.setItem(KEYS.language, settings.language);
+    // The start-up script reads this to apply the motion preference before the
+    // first frame paints; motion follows this value, never the OS flag.
+    store.setItem(KEYS.animations, String(settings.animations));
   } catch {
     /* A full or blocked storage must never break settings. */
   }

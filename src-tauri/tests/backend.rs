@@ -363,6 +363,8 @@ async fn settings_are_sanitised_and_persisted() {
     assert_eq!(defaults.language, "en");
     assert_eq!(defaults.update_channel, "stable");
     assert_eq!(defaults.daily_goal, 30);
+    // Automatic update checks are opt-out and enabled for new installations.
+    assert!(defaults.auto_update_check);
 
     let custom = AppSettings {
         theme: "neon".into(),
@@ -374,6 +376,7 @@ async fn settings_are_sanitised_and_persisted() {
         display_name: "A".repeat(200),
         accent: "teal".into(),
         animations: false,
+        auto_update_check: false,
         display_font: "modern".into(),
         language: "de".into(),
         ..Default::default()
@@ -389,6 +392,7 @@ async fn settings_are_sanitised_and_persisted() {
     assert_eq!(saved.display_name.chars().count(), 60);
     assert_eq!(saved.accent, "teal");
     assert!(!saved.animations);
+    assert!(!saved.auto_update_check);
     assert_eq!(saved.display_font, "modern");
     assert_eq!(saved.language, "de");
 
@@ -396,8 +400,23 @@ async fn settings_are_sanitised_and_persisted() {
     assert_eq!(loaded.accent, "teal");
     assert_eq!(loaded.daily_goal, 1_000);
     assert!(!loaded.animations);
+    assert!(!loaded.auto_update_check);
     assert_eq!(loaded.display_font, "modern");
     assert_eq!(loaded.language, "de");
+
+    // A row written before the preference existed loads as enabled, so an
+    // upgrade never silently turns automatic checks off for existing users.
+    sqlx::query(
+        "INSERT INTO settings (key, value) VALUES ('app', ?)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+    )
+    .bind("{\"theme\":\"light\",\"accent\":\"teal\",\"animations\":true}")
+    .execute(&db.pool)
+    .await
+    .expect("legacy settings");
+    let legacy = settings::load(&db.pool).await.expect("legacy reload");
+    assert_eq!(legacy.theme, "light");
+    assert!(legacy.auto_update_check);
 
     let mut invalid = loaded;
     invalid.display_font = "comic".into();

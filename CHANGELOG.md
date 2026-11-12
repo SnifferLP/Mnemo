@@ -2,6 +2,30 @@
 
 All notable changes to Mnemo are documented here. The project follows [Semantic Versioning](https://semver.org/).
 
+## [1.2.5-rc.2] - 2026-11-12
+
+Cross-platform polish on top of `1.2.5-rc.1`. No study set, progress or review history is affected.
+
+### Fixed
+
+- Animations now work on Windows. WebView2 reports `prefers-reduced-motion: reduce` as soon as the Windows "Animation effects" accessibility setting is off — which is the default on many virtual and remote sessions — and a stylesheet rule honoured that media query, so every keyframe animation and transition was reduced to nothing on Windows while the Linux build animated normally. Motion now follows **Settings → Animations** only, that preference is applied before the first frame, and the Linux behaviour is unchanged.
+- The window opens maximized on Windows and Linux. `app.windows[0].maximized` is set, so the window is created maximized instead of growing after launch. Minimizing, restoring, resizing and closing keep working, and 1440 × 920 remains the size used when restoring down.
+
+### Added
+
+- **Settings → Updates → Check for updates automatically.** Enabled by default for new and existing installations, it governs the start-up check and the automatic check that follows a channel switch. Manual checks stay available and unaffected. Settings stored by older versions do not contain the key and load as enabled.
+
+### Changed
+
+- The flashcard preview on the learning set page is narrower and centred, and its "See the cards before you start" heading is removed. Start learning moved next to the paging controls. Flipping, paging and starring are unchanged.
+- The sidebar brand is now the logo and the name "Mnemo" only; the "A quiet archive" / "Ein stilles Archiv" subtitle is gone in both languages, and logo and wordmark are aligned as one lockup.
+- The Updates section description no longer promises background checks unconditionally, because they are now a preference.
+
+### Internal
+
+- `mnemo.animations` joins the appearance cache, so `index.html` applies the motion preference before React mounts.
+- Frontend tests cover the automatic-update default and merge behaviour, and a stylesheet guard keeps the OS reduced-motion override from returning.
+
 ## [1.2.5-rc.1] - 2026-11-12
 
 A feature and correctness release for learning sessions. Existing study sets, progress and review history are unchanged; starring is additive and every older card starts unstarred.

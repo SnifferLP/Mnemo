@@ -20,6 +20,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   sidebarCollapsed: false,
   shuffleCards: false,
   animations: true,
+  autoUpdateCheck: true,
   updateChannel: "stable",
 };
 
