@@ -2,6 +2,30 @@
 
 All notable changes to Mnemo are documented here. The project follows [Semantic Versioning](https://semver.org/).
 
+## [1.2.5-rc.3] - 2026-11-12
+
+Third release candidate for `1.2.5`: nothing is clipped at the bottom of the window any more, the card editor flags duplicate terms while you type, and the German interface uses the wording you asked for. Study sets, progress and review history are untouched.
+
+### Fixed
+
+- **Content no longer disappears below the bottom edge of the window.** The shell was pinned to `100vh`, which on WebKitGTK (Linux) can describe a taller area than the user actually sees, so the last rows of a page sat below the window edge where no scroll could reach them. The shell now uses a single `.app-viewport` height (`100vh`, upgraded to `100dvh` where the engine supports the visible viewport) for the app, the study views and the splash screen, and the page content wrapper fills that height instead of guessing it.
+- **The assistant page no longer hides its composer.** It derived its height from `100vh − 4rem` while the shell pads `2rem` at small widths and `2.5rem` at desktop widths, so its input row landed 16px past the fold on any window wider than 1024px. It now fills the space the shell gives it.
+- Scroll containers carry scroll padding, so a card that is jumped to or focused is never flush against the edge, and the dashboard's highlighted "ready to review" tile no longer hides its own overflow (which could clip its button at narrow widths).
+
+### Added
+
+- **Duplicate detection in the card editor.** Sides are compared after Unicode normalisation, lowercasing and whitespace collapsing, so ` Haus `, `haus` and `HAUS` count as the same term while `a/b` and `ab` stay different. A duplicate card gets an amber outline with "Duplicate detected!" / "Duplikat erkannt!" and an arrow that scrolls to, focuses and briefly highlights the original card. The warning is derived from the live draft, so it disappears the moment the term is corrected, several duplicates are all traced back to the first card, and saving is never blocked. The dashed row that creates the next card checks its term the same way.
+
+### Changed
+
+- The separate "Add another card" / "Weitere Karte hinzufügen" button is gone: the dashed row below the list already creates the next card as soon as both sides have text.
+- German wording, applied everywhere the strings appear: "Bereit zur Wiederholung" → **"Fällig"**, "Trefferquote" → **"Genauigkeit"**, "Lernsets mit Karten, die auf Wiederholung warten" → **"Anstehende Lernsets:"**, "Heute zählt." → **"Für heute erledigt!"**, and the greeting now reads "{count} Karten warten auf dich. Bereit für eine kurze Runde?" ("1 Karte wartet auf dich…" for a single card).
+
+### Internal
+
+- `src/lib/duplicates.ts` holds the pure normalisation and lookup helpers with unit tests for casing, whitespace, punctuation, umlauts and repeated duplicates.
+- German wording is covered by the translation tests, so the old terms cannot creep back in.
+
 ## [1.2.5-rc.2] - 2026-11-12
 
 Cross-platform polish on top of `1.2.5-rc.1`. No study set, progress or review history is affected.

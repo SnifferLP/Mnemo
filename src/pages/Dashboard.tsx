@@ -197,7 +197,7 @@ export function DashboardPage() {
           </section>
 
           <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[1.25fr_1fr_1fr_1fr]">
-            <Card className="relative flex flex-col overflow-hidden bg-primary p-5 text-primary-foreground shadow-lift">
+            <Card className="relative flex flex-col bg-primary p-5 text-primary-foreground shadow-lift">
               <div className="flex items-center justify-between gap-3">
                 <span className="text-[11.5px] font-medium text-primary-foreground/80">
                   {t("Ready to review")}

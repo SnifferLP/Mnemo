@@ -43,7 +43,7 @@ function AppToaster() {
  */
 function AppSplash() {
   return (
-    <div className="flex h-screen w-full items-center justify-center bg-background">
+    <div className="flex app-viewport w-full items-center justify-center bg-background">
       <div className="flex animate-fade-in flex-col items-center gap-4">
         <img src={logoUrl} alt="" className="size-12 rounded-xl shadow-soft" />
         <span className="display text-[20px] leading-none text-foreground">Mnemo</span>

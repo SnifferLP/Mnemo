@@ -22,7 +22,7 @@ export function StudyShell({
 }) {
   const { t } = useI18n();
   return (
-    <div className="flex h-screen w-full flex-col bg-background">
+    <div className="flex app-viewport w-full flex-col bg-background">
       <header className="flex h-[68px] shrink-0 items-center gap-3 px-5">
         <div className="flex w-full items-center gap-3 rounded-xl bg-card px-3 py-2 shadow-soft">
           <Button variant="ghost" size="icon-sm" onClick={onExit} aria-label={t("Leave session")}>
@@ -39,7 +39,7 @@ export function StudyShell({
           <div className="ml-auto flex items-center gap-2">{right}</div>
         </div>
       </header>
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 scroll-pb-6 overflow-y-auto">
         <div className={cn("mx-auto w-full px-6 pb-10 pt-4", width)}>{children}</div>
       </div>
     </div>

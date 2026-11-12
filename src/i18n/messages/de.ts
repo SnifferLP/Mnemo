@@ -71,7 +71,7 @@ export const de: Record<string, string> = {
   minutes: "Minuten",
   cards: "Karten",
   reviews: "Wiederholungen",
-  accuracy: "Trefferquote",
+  accuracy: "Genauigkeit",
   score: "Punktzahl",
   mastered: "beherrscht",
 
@@ -88,7 +88,7 @@ export const de: Record<string, string> = {
   "{hours} h": "{hours} Std.",
 
   // Dashboard
-  "Ready to review": "Bereit zur Wiederholung",
+  "Ready to review": "Fällig",
   "card due": "fällige Karte",
   "cards due": "fällige Karten",
   "Continue studying": "Weiterlernen",
@@ -98,7 +98,7 @@ export const de: Record<string, string> = {
   Streak: "Lernserie",
   "Keep it alive today.": "Bleib heute dran, damit sie nicht abreißt.",
   "Study once to begin.": "Lerne einmal, um deine Serie zu starten.",
-  "Accuracy · 7d": "Trefferquote · 7 T.",
+  "Accuracy · 7d": "Genauigkeit · 7 T.",
   "The last two weeks": "Die letzten zwei Wochen",
   "Learning activity": "Lernaktivität",
   "Full statistics": "Alle Statistiken",
@@ -112,7 +112,7 @@ export const de: Record<string, string> = {
   "Study sets": "Lernsets",
   "View your progress": "Fortschritt ansehen",
   "Continue where you left off": "Dort weitermachen, wo du aufgehört hast",
-  "Sets with cards waiting for review": "Lernsets mit Karten, die auf Wiederholung warten",
+  "Sets with cards waiting for review": "Anstehende Lernsets:",
   "All sets": "Alle Lernsets",
   "No study sets yet": "Noch keine Lernsets",
   "Create your first set, paste existing flashcards, or let AI build them from your notes.":
@@ -170,7 +170,7 @@ export const de: Record<string, string> = {
   "Crunching your history…": "Dein Verlauf wird ausgewertet …",
   "Create a study set": "Lernset erstellen",
   "Accuracy counts correct and half-credit answers. Mastered means an interval of 21+ days with at least two correct reviews.":
-    "Die Trefferquote zählt richtige und teilweise richtige Antworten. „Beherrscht“ bedeutet ein Intervall von mindestens 21 Tagen und mindestens zwei richtige Wiederholungen.",
+    "Die Genauigkeit zählt richtige und teilweise richtige Antworten. „Beherrscht“ bedeutet ein Intervall von mindestens 21 Tagen und mindestens zwei richtige Wiederholungen.",
 
   // Study modes and card states
   Flashcards: "Karteikarten",
@@ -301,8 +301,8 @@ export const de: Record<string, string> = {
   "Changes the interface immediately. Your study content and AI responses are never translated.":
     "Ändert die Oberfläche sofort. Deine Lerninhalte und die Antworten der KI werden nie übersetzt.",
   "Could not load your dashboard.": "Deine Übersicht konnte nicht geladen werden.",
-  "1 card is ready for review. A short session keeps the archive alive.": "1 Karte ist bereit zur Wiederholung. Eine kurze Sitzung hält dein Archiv lebendig.",
-  "{count} cards are ready for review. A short session keeps the archive alive.": "{count} Karten sind bereit zur Wiederholung. Eine kurze Sitzung hält dein Archiv lebendig.",
+  "1 card is ready for review. A short session keeps the archive alive.": "1 Karte wartet auf dich. Bereit für eine kurze Runde?",
+  "{count} cards are ready for review. A short session keeps the archive alive.": "{count} Karten warten auf dich. Bereit für eine kurze Runde?",
   "Nothing is due right now. Add new material or revisit an old set.": "Momentan ist nichts fällig. Füge neues Material hinzu oder schau dir ein älteres Lernset an.",
   "day": "Tag",
   "days": "Tage",
@@ -373,7 +373,7 @@ export const de: Record<string, string> = {
   "Due for review": "Zur Wiederholung fällig",
   "Ready when you are": "Bereit, wann immer du es bist",
   "Nothing due right now": "Momentan nichts fällig",
-  "Accuracy": "Trefferquote",
+  "Accuracy": "Genauigkeit",
   "Study time": "Lernzeit",
   "Last studied {when}": "Zuletzt gelernt {when}",
   "Not studied yet": "Noch nicht gelernt",
@@ -483,11 +483,12 @@ export const de: Record<string, string> = {
   "Preview": "Vorschau",
   "Description": "Beschreibung",
   "What is this set about?": "Worum geht es in diesem Lernset?",
+  "Duplicate detected!": "Duplikat erkannt!",
+  "Go to original": "Zum Original",
   "Card editor": "Karten-Editor",
   "Table": "Tabelle",
   "new card": "neue Karte",
   "save": "speichern",
-  "Add another card": "Weitere Karte hinzufügen",
   "Tags": "Tags",
   "No tags yet": "Noch keine Tags",
   "Add tag, press Enter": "Tag hinzufügen, Enter drücken",
@@ -735,7 +736,7 @@ export const de: Record<string, string> = {
   "{count} partially correct": "{count} teilweise richtig",
   "{count} {unit}": "{count} {unit}",
   "{name} is now the default": "{name} ist jetzt der Standard",
-  "{percent} session accuracy": "{percent} Trefferquote in dieser Sitzung",
+  "{percent} session accuracy": "{percent} Genauigkeit in dieser Sitzung",
   "{percent}% match": "{percent} % Übereinstimmung",
   "Change settings": "Einstellungen ändern",
   "Leave session": "Sitzung verlassen",
@@ -825,7 +826,7 @@ export const de: Record<string, string> = {
     "Karten, Fortschritt und Verlauf bleiben erhalten. Stelle es wieder her, um die Lernmodi zu nutzen.",
   "This study set is archived. Restore it before studying.":
     "Dieses Lernset ist archiviert. Stelle es vor dem Lernen wieder her.",
-  "Today counts.": "Heute zählt.",
+  "Today counts.": "Für heute erledigt!",
   "Study today to keep it going.": "Lerne heute, damit die Serie weiterläuft.",
   "Best {count} days": "Bestwert: {count} Tage",
   Application: "Anwendung",

@@ -524,6 +524,25 @@
   }
 }
 
+/*
+ * The application shell is exactly one viewport tall.
+ *
+ * `100vh` describes the layout viewport, which on WebKitGTK (Linux) can be
+ * taller than the area of the webview the user actually sees, so the last rows
+ * of a page ended up below the window edge and could not be scrolled into
+ * view. `100dvh` tracks the visible viewport; the plain `100vh` above keeps
+ * engines without dynamic units on the previous behaviour.
+ */
+.app-viewport {
+  height: 100vh;
+}
+
+@supports (height: 100dvh) {
+  .app-viewport {
+    height: 100dvh;
+  }
+}
+
 @keyframes fade-in {
   from { opacity: 0; }
   to { opacity: 1; }

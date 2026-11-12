@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Check, Eye, Keyboard, LayoutList, Plus, Save, Table2, Tag, X } from "lucide-react";
+import { ArrowLeft, Check, Eye, Keyboard, LayoutList, Save, Table2, Tag, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { api } from "@/lib/api";
 import type { Flashcard, FolderNode, StudySetDetail, UpdateSetInput } from "@/lib/types";
+import { indexTerms } from "@/lib/duplicates";
 import { errorMessage } from "@/lib/utils";
 import { useI18n } from "@/i18n";
 import { CardEditorRow, DraftCardRow } from "@/components/editor/CardEditorRow";
@@ -47,6 +48,36 @@ export function SetEditorPage() {
   const metaRef = useRef<Meta | null>(null);
   const saveTimer = useRef<number | null>(null);
   const draftAnchor = useRef<HTMLDivElement>(null);
+  const rowRefs = useRef(new Map<string, HTMLDivElement>());
+  const [flashId, setFlashId] = useState<string | null>(null);
+  const flashTimer = useRef<number | null>(null);
+
+  // First card for every saved term. Rows also compare their live draft
+  // against this index, so duplicates are found while typing.
+  const termIndex = useMemo(
+    () =>
+      indexTerms(
+        (detail?.cards ?? []).map((item) => ({ id: item.card.id, front: item.card.front })),
+      ),
+    [detail],
+  );
+
+  const jumpToCard = useCallback((cardId: string) => {
+    const element = rowRefs.current.get(cardId);
+    if (!element) return;
+    element.scrollIntoView({ behavior: "smooth", block: "center" });
+    element.querySelector("textarea")?.focus({ preventScroll: true });
+    setFlashId(cardId);
+    if (flashTimer.current) window.clearTimeout(flashTimer.current);
+    flashTimer.current = window.setTimeout(() => setFlashId(null), 1800);
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (flashTimer.current) window.clearTimeout(flashTimer.current);
+    },
+    [],
+  );
 
   const reload = useCallback(async () => {
     try {
@@ -276,48 +307,61 @@ export function SetEditorPage() {
           ) : (
             <div className="space-y-2">
               {detail.cards.map((studyCard, index) => (
-                <CardEditorRow
+                <div
                   key={studyCard.card.id}
-                  studyCard={studyCard}
-                  index={index}
-                  onUpdated={replaceCard}
-                  onReordered={() => void reload()}
-                  dragHandlers={{
-                    isDragging: dragIndex === index,
-                    onDragStart: () => setDragIndex(index),
-                    onDragOver: (event) => event.preventDefault(),
-                    onDrop: () => {
-                      if (dragIndex !== null) void moveCard(dragIndex, index);
-                      setDragIndex(null);
-                    },
+                  ref={(element) => {
+                    if (element) rowRefs.current.set(studyCard.card.id, element);
+                    else rowRefs.current.delete(studyCard.card.id);
                   }}
-                  onDeleted={async () => {
-                    try {
-                      await api.cards.delete(studyCard.card.id);
-                      setDetail((current) =>
-                        current
-                          ? { ...current, cards: current.cards.filter((item) => item.card.id !== studyCard.card.id) }
-                          : current,
-                      );
-                      toast.success(t("Card deleted"));
-                    } catch (err) {
-                      toast.error(errorMessage(err));
-                    }
-                  }}
-                />
+                >
+                  <CardEditorRow
+                    studyCard={studyCard}
+                    index={index}
+                    termIndex={termIndex}
+                    onJumpToCard={jumpToCard}
+                    highlighted={flashId === studyCard.card.id}
+                    onUpdated={replaceCard}
+                    onReordered={() => void reload()}
+                    dragHandlers={{
+                      isDragging: dragIndex === index,
+                      onDragStart: () => setDragIndex(index),
+                      onDragOver: (event) => event.preventDefault(),
+                      onDrop: () => {
+                        if (dragIndex !== null) void moveCard(dragIndex, index);
+                        setDragIndex(null);
+                      },
+                    }}
+                    onDeleted={async () => {
+                      try {
+                        await api.cards.delete(studyCard.card.id);
+                        setDetail((current) =>
+                          current
+                            ? {
+                                ...current,
+                                cards: current.cards.filter(
+                                  (item) => item.card.id !== studyCard.card.id,
+                                ),
+                              }
+                            : current,
+                        );
+                        toast.success(t("Card deleted"));
+                      } catch (err) {
+                        toast.error(errorMessage(err));
+                      }
+                    }}
+                  />
+                </div>
               ))}
 
+              {/* The dashed row below the list creates the next card as soon as
+                  both sides have text, so no separate add button is needed. */}
               <div ref={draftAnchor}>
-                <DraftCardRow onCreate={addCard} />
+                <DraftCardRow
+                  onCreate={addCard}
+                  termIndex={termIndex}
+                  onJumpToCard={jumpToCard}
+                />
               </div>
-
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => draftAnchor.current?.scrollIntoView({ behavior: "smooth", block: "center" })}
-              >
-                <Plus /> {t("Add another card")}
-              </Button>
             </div>
           )}
         </div>

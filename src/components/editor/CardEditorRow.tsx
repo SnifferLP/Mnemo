@@ -5,12 +5,14 @@ import {
   ChevronDown,
   ChevronUp,
   Copy,
+  CornerUpLeft,
   GripVertical,
   ImagePlus,
   Loader2,
   Mic,
   Square,
   Trash2,
+  TriangleAlert,
   Volume2,
   VolumeX,
   X,
@@ -20,6 +22,7 @@ import { toast } from "sonner";
 import { api } from "@/lib/api";
 import type { Flashcard, StudyCard } from "@/lib/types";
 import { CARD_TYPES, cn, errorMessage } from "@/lib/utils";
+import { normalizeTerm } from "@/lib/duplicates";
 import { useI18n } from "@/i18n";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -52,6 +55,9 @@ export function CardEditorRow({
   onDeleted,
   onReordered,
   dragHandlers,
+  termIndex,
+  onJumpToCard,
+  highlighted = false,
 }: {
   studyCard: StudyCard;
   index: number;
@@ -64,6 +70,10 @@ export function CardEditorRow({
     onDrop: () => void;
     isDragging: boolean;
   };
+  /** Normalised term to the id of the first card that holds it. */
+  termIndex: Map<string, string>;
+  onJumpToCard: (cardId: string) => void;
+  highlighted?: boolean;
 }) {
   const { t } = useI18n();
   const card = studyCard.card;
@@ -99,6 +109,15 @@ export function CardEditorRow({
     draft.explanation !== card.explanation ||
     draft.hint !== card.hint ||
     draft.cardType !== card.cardType;
+
+  // Compared against the live draft so the warning disappears as soon as the
+  // term is corrected, and appears while typing rather than after the save.
+  const duplicateOfId = (() => {
+    const key = normalizeTerm(draft.front);
+    if (!key) return null;
+    const original = termIndex.get(key);
+    return original && original !== card.id ? original : null;
+  })();
 
   const save = async () => {
     const current = draftRef.current;
@@ -208,6 +227,8 @@ export function CardEditorRow({
       className={cn(
         "group p-3 transition-all",
         dragHandlers.isDragging && "opacity-50",
+        duplicateOfId && "border border-warning/60 ring-2 ring-warning/20",
+        highlighted && "ring-2 ring-primary/40",
       )}
     >
       <div className="flex items-start gap-2">
@@ -269,6 +290,21 @@ export function CardEditorRow({
           </Button>
         </div>
       </div>
+
+      {duplicateOfId && (
+        <div className="mt-2 flex flex-wrap items-center gap-2 pl-[52px]">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-warning/16 px-2.5 py-1 text-[11px] font-semibold text-warning">
+            <TriangleAlert className="size-3.5" /> {t("Duplicate detected!")}
+          </span>
+          <button
+            type="button"
+            onClick={() => onJumpToCard(duplicateOfId)}
+            className="focus-ring inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11.5px] font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+          >
+            <CornerUpLeft className="size-3.5" /> {t("Go to original")}
+          </button>
+        </div>
+      )}
 
       {(card.imagePath || card.audioPath) && (
         <div className="mt-2 flex items-center gap-2 pl-[52px]">
@@ -400,12 +436,23 @@ export function CardEditorRow({
   );
 }
 
-export function DraftCardRow({ onCreate }: { onCreate: (front: string, back: string) => Promise<void> }) {
+export function DraftCardRow({
+  onCreate,
+  termIndex,
+  onJumpToCard,
+}: {
+  onCreate: (front: string, back: string) => Promise<void>;
+  termIndex: Map<string, string>;
+  onJumpToCard: (cardId: string) => void;
+}) {
   const { t } = useI18n();
   const [front, setFront] = useState("");
   const [back, setBack] = useState("");
   const [busy, setBusy] = useState(false);
   const frontRef = useRef<HTMLTextAreaElement>(null);
+
+  const draftKey = normalizeTerm(front);
+  const duplicateOfId = draftKey ? (termIndex.get(draftKey) ?? null) : null;
 
   const submit = async () => {
     if (!front.trim() || !back.trim()) {
@@ -424,7 +471,26 @@ export function DraftCardRow({ onCreate }: { onCreate: (front: string, back: str
   };
 
   return (
-    <Card className="border-dashed border-primary/30 bg-primary/[0.03] p-3">
+    <Card
+      className={cn(
+        "border-dashed border-primary/30 bg-primary/[0.03] p-3",
+        duplicateOfId && "border-warning/60 ring-2 ring-warning/20",
+      )}
+    >
+      {duplicateOfId && (
+        <div className="mb-2 flex flex-wrap items-center gap-2 pl-[34px]">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-warning/16 px-2.5 py-1 text-[11px] font-semibold text-warning">
+            <TriangleAlert className="size-3.5" /> {t("Duplicate detected!")}
+          </span>
+          <button
+            type="button"
+            onClick={() => onJumpToCard(duplicateOfId)}
+            className="focus-ring inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11.5px] font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+          >
+            <CornerUpLeft className="size-3.5" /> {t("Go to original")}
+          </button>
+        </div>
+      )}
       <div className="flex items-start gap-2">
         <span className="mt-2 w-6 shrink-0 text-center text-[16px] leading-none text-primary/60">+</span>
         <div className="grid min-w-0 flex-1 gap-2 md:grid-cols-2">

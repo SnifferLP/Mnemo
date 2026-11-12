@@ -26,6 +26,25 @@ describe("translation catalogue", () => {
     expect(translate("de", "I knew it")).toBe("Gewusst");
   });
 
+  it("uses the current German dashboard wording", () => {
+    expect(translate("de", "Ready to review")).toBe("Fällig");
+    expect(translate("de", "Accuracy")).toBe("Genauigkeit");
+    expect(translate("de", "Accuracy · 7d")).toBe("Genauigkeit · 7 T.");
+    expect(translate("de", "{percent} session accuracy", { percent: 90 })).toBe(
+      "90 Genauigkeit in dieser Sitzung",
+    );
+    expect(translate("de", "Sets with cards waiting for review")).toBe("Anstehende Lernsets:");
+    expect(translate("de", "Today counts.")).toBe("Für heute erledigt!");
+    expect(
+      translate("de", "1 card is ready for review. A short session keeps the archive alive."),
+    ).toBe("1 Karte wartet auf dich. Bereit für eine kurze Runde?");
+    expect(
+      translate("de", "{count} cards are ready for review. A short session keeps the archive alive.", {
+        count: 12,
+      }),
+    ).toBe("12 Karten warten auf dich. Bereit für eine kurze Runde?");
+  });
+
   it("interpolates values into translated text", () => {
     expect(translate("de", "Loaded {count} models", { count: 3 })).toBe("3 Modelle geladen");
     expect(translate("de", "{percent}% mastered", { percent: 80 })).toBe("80 % beherrscht");
