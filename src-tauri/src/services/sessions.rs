@@ -123,16 +123,39 @@ pub async fn record_review(
     Ok(progress)
 }
 
+/// Resets the learning progress of a single study set.
+///
+/// Only set-attributed data is reset: the SM-2 state of the set's cards and the
+/// review, session and test rows that belong to it. Those rows are flagged
+/// `hidden_by_reset` rather than deleted, because the dashboard's learned-cards
+/// total, the daily activity chart, the weekly accuracy and the streak are all
+/// derived from them — deleting them used to erase a whole day of global
+/// learning history when one set was reset. Global queries ignore the flag; the
+/// set's own statistics skip flagged rows, so its progress starts at zero while
+/// every other set and the global totals stay exactly as they were.
 pub async fn reset_set(pool: &SqlitePool, set_id: &str) -> AppResult<()> {
+    let existing: Option<(String,)> = sqlx::query_as("SELECT id FROM study_sets WHERE id = ?")
+        .bind(set_id)
+        .fetch_optional(pool)
+        .await?;
+    if existing.is_none() {
+        return Err(not_found("study set"));
+    }
+
+    sqlx::query("UPDATE card_reviews SET hidden_by_reset = 1 WHERE set_id = ?")
+        .bind(set_id)
+        .execute(pool)
+        .await?;
+    sqlx::query("UPDATE study_sessions SET hidden_by_reset = 1 WHERE set_id = ?")
+        .bind(set_id)
+        .execute(pool)
+        .await?;
+    sqlx::query("UPDATE test_results SET hidden_by_reset = 1 WHERE set_id = ?")
+        .bind(set_id)
+        .execute(pool)
+        .await?;
+
     sqlx::query("DELETE FROM card_progress WHERE set_id = ?")
-        .bind(set_id)
-        .execute(pool)
-        .await?;
-    sqlx::query("DELETE FROM card_reviews WHERE set_id = ?")
-        .bind(set_id)
-        .execute(pool)
-        .await?;
-    sqlx::query("DELETE FROM test_results WHERE set_id = ?")
         .bind(set_id)
         .execute(pool)
         .await?;

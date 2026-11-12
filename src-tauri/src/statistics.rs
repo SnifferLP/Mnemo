@@ -394,9 +394,12 @@ pub async fn statistics(
                 (SELECT COUNT(*) FROM flashcards f WHERE f.set_id = s.id) AS cards,
                 (SELECT COUNT(*) FROM card_progress p WHERE p.set_id = s.id AND p.interval_days >= 21 AND p.correct_count >= 2) AS mastered,
                 (SELECT COUNT(*) FROM card_progress p WHERE p.set_id = s.id AND p.state <> 'new' AND p.due_at IS NOT NULL AND p.due_at <= ?1) AS due,
-                (SELECT COUNT(*) FROM card_reviews r WHERE r.set_id = s.id AND r.created_at >= ?2) AS reviews,
-                (SELECT COUNT(*) FROM card_reviews r WHERE r.set_id = s.id AND r.created_at >= ?2 AND r.outcome = 'correct') AS correct,
-                (SELECT COALESCE(SUM(ss.duration_seconds), 0) FROM study_sessions ss WHERE ss.set_id = s.id AND ss.started_at >= ?2) AS seconds
+                (SELECT COUNT(*) FROM card_reviews r WHERE r.set_id = s.id AND r.created_at >= ?2
+                    AND r.hidden_by_reset = 0) AS reviews,
+                (SELECT COUNT(*) FROM card_reviews r WHERE r.set_id = s.id AND r.created_at >= ?2
+                    AND r.hidden_by_reset = 0 AND r.outcome = 'correct') AS correct,
+                (SELECT COALESCE(SUM(ss.duration_seconds), 0) FROM study_sessions ss WHERE ss.set_id = s.id
+                    AND ss.started_at >= ?2 AND ss.hidden_by_reset = 0) AS seconds
          FROM study_sets s
          WHERE s.archived_at IS NULL
          ORDER BY reviews DESC, s.title COLLATE NOCASE",
@@ -519,15 +522,18 @@ pub async fn set_statistics(
     .fetch_one(pool)
     .await?;
 
+    // Rows the set reset earlier stay in the database for the global statistics,
+    // but they no longer count as progress of this set.
     let review_row: (i64, i64) = sqlx::query_as(
         "SELECT COUNT(*), COALESCE(SUM(CASE WHEN outcome='correct' THEN 1 ELSE 0 END),0)
-         FROM card_reviews WHERE set_id = ?",
+         FROM card_reviews WHERE set_id = ? AND hidden_by_reset = 0",
     )
     .bind(set_id)
     .fetch_one(pool)
     .await?;
     let seconds: i64 = sqlx::query_scalar(
-        "SELECT COALESCE(SUM(duration_seconds), 0) FROM study_sessions WHERE set_id = ?",
+        "SELECT COALESCE(SUM(duration_seconds), 0) FROM study_sessions
+         WHERE set_id = ? AND hidden_by_reset = 0",
     )
     .bind(set_id)
     .fetch_one(pool)
@@ -540,7 +546,7 @@ pub async fn set_statistics(
         "SELECT {} AS day, COUNT(*),
                 SUM(CASE WHEN outcome='correct' THEN 1 ELSE 0 END),
                 COUNT(DISTINCT card_id)
-         FROM card_reviews WHERE set_id = ? AND {} >= ?
+         FROM card_reviews WHERE set_id = ? AND hidden_by_reset = 0 AND {} >= ?
          GROUP BY day ORDER BY day",
         local_day_expr("created_at"),
         local_day_expr("created_at")
@@ -552,7 +558,7 @@ pub async fn set_statistics(
 
     let session_rows: Vec<(String, i64)> = sqlx::query_as(&format!(
         "SELECT {} AS day, COALESCE(SUM(duration_seconds),0)
-         FROM study_sessions WHERE set_id = ? AND {} >= ? GROUP BY day",
+         FROM study_sessions WHERE set_id = ? AND hidden_by_reset = 0 AND {} >= ? GROUP BY day",
         local_day_expr("started_at"),
         local_day_expr("started_at")
     ))
@@ -589,7 +595,7 @@ pub async fn set_statistics(
     let tests: Vec<TestResultSummary> = sqlx::query_as(
         "SELECT t.id, t.set_id, s.title AS set_title, t.score, t.total, t.duration_seconds, t.created_at
          FROM test_results t LEFT JOIN study_sets s ON s.id = t.set_id
-         WHERE t.set_id = ? ORDER BY t.created_at DESC LIMIT 10",
+         WHERE t.set_id = ? AND t.hidden_by_reset = 0 ORDER BY t.created_at DESC LIMIT 10",
     )
     .bind(set_id)
     .fetch_all(pool)

@@ -28,8 +28,10 @@ pub async fn list_summaries(
                     AND p.interval_days >= 21 AND p.correct_count >= 2) AS mastered_count,
                 (SELECT COUNT(*) FROM card_progress p WHERE p.set_id = s.id AND p.state <> 'new'
                     AND p.due_at IS NOT NULL AND p.due_at <= ?) AS due_count,
-                (SELECT COUNT(*) FROM card_reviews r WHERE r.set_id = s.id) AS reviewed_count,
-                (SELECT COUNT(*) FROM card_reviews r WHERE r.set_id = s.id AND r.outcome = 'correct') AS correct_count
+                (SELECT COUNT(*) FROM card_reviews r WHERE r.set_id = s.id
+                    AND r.hidden_by_reset = 0) AS reviewed_count,
+                (SELECT COUNT(*) FROM card_reviews r WHERE r.set_id = s.id
+                    AND r.hidden_by_reset = 0 AND r.outcome = 'correct') AS correct_count
          FROM study_sets s
          LEFT JOIN folders f ON f.id = s.folder_id
          WHERE 1 = 1",

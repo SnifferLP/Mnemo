@@ -2,6 +2,18 @@
 
 All notable changes to Mnemo are documented here. The project follows [Semantic Versioning](https://semver.org/).
 
+## [1.2.6-rc.1] - 2026-11-12
+
+First release candidate for `1.2.6`, fixing a data-loss bug in the per-set reset. Existing study sets, progress, review history and settings are kept.
+
+### Fixed
+
+- **Resetting one study set no longer wipes global learning statistics.** “Reset progress” deleted every review the set had recorded, and the dashboard's learned-cards-today number, the daily chart, the weekly accuracy and the streak are all calculated from those reviews. Resetting a single set therefore erased the day's global activity, including the activity of every other set. A reset now clears only the set's own progress, its mastered-card count, its “Last 30 Days” view and its test history; the learned-cards total, dashboard, streak, global statistics and all other sets stay exactly as they were.
+
+### Internal
+
+- A set reset marks its review, session and test rows as reset-scoped instead of deleting them, so the set's statistics start at zero while global aggregates keep counting the same history. A new migration adds the flag to existing databases; no data is rewritten.
+
 ## [1.2.5] - 2026-11-12
 
 First stable release of the `1.2.5` line. It collects the four release candidates and adds two layout fixes found during the last one. Existing study sets, progress, review history and settings are kept.

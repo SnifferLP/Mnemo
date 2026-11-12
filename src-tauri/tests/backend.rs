@@ -1128,3 +1128,233 @@ async fn global_statistics_remain_available_after_deleting_the_last_set() {
 
     db.cleanup().await;
 }
+
+#[tokio::test]
+async fn resetting_one_set_keeps_global_history_and_other_sets_intact() {
+    let db = TestDb::new().await;
+    let alpha = sets::create(
+        &db.pool,
+        set_input("Alpha", vec![card("A1", "one"), card("A2", "two")]),
+    )
+    .await
+    .expect("create alpha");
+    let beta = sets::create(&db.pool, set_input("Beta", vec![card("B1", "three")]))
+        .await
+        .expect("create beta");
+
+    // Both sets are studied on the same day: the reported scenario.
+    for study_card in &alpha.cards {
+        sessions::record_review(
+            &db.pool,
+            &study_card.card.id,
+            Outcome::Correct,
+            "flashcards",
+            400,
+        )
+        .await
+        .expect("alpha review");
+    }
+    sessions::record_review(
+        &db.pool,
+        &beta.cards[0].card.id,
+        Outcome::Correct,
+        "flashcards",
+        400,
+    )
+    .await
+    .expect("beta review");
+
+    let alpha_session = sessions::start(&db.pool, Some(alpha.set.id.clone()), "flashcards")
+        .await
+        .expect("alpha session");
+    sessions::finish(&db.pool, &alpha_session, 2, 2, 0, 180)
+        .await
+        .expect("alpha session finished");
+
+    sqlx::query(
+        "INSERT INTO test_results (id, set_id, score, total, duration_seconds, question_types, details, created_at)
+         VALUES ('test-alpha', ?, 80, 5, 60, '', '[]', ?)",
+    )
+    .bind(&alpha.set.id)
+    .bind(db::now_iso())
+    .execute(&db.pool)
+    .await
+    .expect("alpha test result");
+
+    let before_dashboard = statistics::dashboard(&db.pool, 20)
+        .await
+        .expect("dashboard before reset");
+    let before_alpha = statistics::set_statistics(&db.pool, &alpha.set.id)
+        .await
+        .expect("alpha statistics before reset");
+    let before_beta = statistics::set_statistics(&db.pool, &beta.set.id)
+        .await
+        .expect("beta statistics before reset");
+
+    assert_eq!(before_dashboard.totals.reviews_today, 3);
+    assert_eq!(before_dashboard.totals.minutes_today, 3.0);
+    assert_eq!(before_alpha.reviews, 2);
+    assert_eq!(before_alpha.minutes, 3.0);
+    assert_eq!(before_alpha.tests.len(), 1);
+    assert_eq!(before_beta.reviews, 1);
+
+    sessions::reset_set(&db.pool, &alpha.set.id)
+        .await
+        .expect("reset alpha");
+
+    // The dashboard is untouched: today's learned cards, minutes, accuracy and
+    // the daily chart still include both sets.
+    let after_dashboard = statistics::dashboard(&db.pool, 20)
+        .await
+        .expect("dashboard after reset");
+    assert_eq!(
+        after_dashboard.totals.reviews_today, before_dashboard.totals.reviews_today,
+        "today's learned cards must survive a set reset"
+    );
+    assert_eq!(
+        after_dashboard.totals.correct_today,
+        before_dashboard.totals.correct_today
+    );
+    assert_eq!(
+        after_dashboard.totals.minutes_today,
+        before_dashboard.totals.minutes_today
+    );
+    assert_eq!(
+        after_dashboard.totals.accuracy_7d,
+        before_dashboard.totals.accuracy_7d
+    );
+    assert_eq!(
+        after_dashboard.totals.streak_days,
+        before_dashboard.totals.streak_days
+    );
+    assert_eq!(
+        after_dashboard.totals.longest_streak,
+        before_dashboard.totals.longest_streak
+    );
+    assert!(after_dashboard.totals.studied_today);
+    assert_eq!(
+        after_dashboard.activity.len(),
+        before_dashboard.activity.len()
+    );
+    for (was, now) in before_dashboard
+        .activity
+        .iter()
+        .zip(after_dashboard.activity.iter())
+    {
+        assert_eq!(was.date, now.date);
+        assert_eq!(was.reviews, now.reviews);
+        assert_eq!(was.correct, now.correct);
+        assert_eq!(was.cards, now.cards);
+        assert_eq!(was.minutes, now.minutes);
+    }
+
+    // Only the reset set starts from zero.
+    let after_alpha = statistics::set_statistics(&db.pool, &alpha.set.id)
+        .await
+        .expect("alpha statistics after reset");
+    assert_eq!(after_alpha.cards, 2);
+    assert_eq!(after_alpha.mastered, 0);
+    assert_eq!(after_alpha.learning, 0);
+    assert_eq!(after_alpha.new_cards, 2);
+    assert_eq!(after_alpha.due, 0);
+    assert_eq!(after_alpha.reviews, 0);
+    assert_eq!(after_alpha.accuracy, 0.0);
+    assert_eq!(after_alpha.minutes, 0.0);
+    assert!(after_alpha.tests.is_empty());
+    assert!(after_alpha
+        .daily
+        .iter()
+        .all(|day| day.reviews == 0 && day.cards == 0 && day.minutes == 0.0));
+    assert!(after_alpha
+        .cards_detail
+        .iter()
+        .all(|c| c.correct == 0 && c.wrong == 0));
+
+    // History rows are kept, progress rows are neither duplicated nor lost.
+    let reviews_kept: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM card_reviews WHERE set_id = ?")
+            .bind(&alpha.set.id)
+            .fetch_one(&db.pool)
+            .await
+            .expect("alpha reviews kept");
+    assert_eq!(reviews_kept, 2);
+    let progress_rows: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM card_progress WHERE set_id = ?")
+            .bind(&alpha.set.id)
+            .fetch_one(&db.pool)
+            .await
+            .expect("alpha progress rows");
+    assert_eq!(progress_rows, 2);
+
+    // The other set keeps its own progress and statistics.
+    let after_beta = statistics::set_statistics(&db.pool, &beta.set.id)
+        .await
+        .expect("beta statistics after reset");
+    assert_eq!(after_beta.reviews, before_beta.reviews);
+    assert_eq!(after_beta.mastered, before_beta.mastered);
+    assert_eq!(after_beta.minutes, before_beta.minutes);
+    assert_eq!(after_beta.cards_detail[0].correct, 1);
+    assert_eq!(
+        after_beta.daily.iter().map(|day| day.reviews).sum::<i64>(),
+        1
+    );
+
+    // The global per-set table resets only the reset set's row.
+    let global = statistics::statistics(&db.pool, 30, 20)
+        .await
+        .expect("global statistics after reset");
+    assert_eq!(global.totals.reviews_today, 3);
+    let alpha_row = global
+        .sets
+        .iter()
+        .find(|row| row.set_id == alpha.set.id)
+        .expect("alpha row");
+    let beta_row = global
+        .sets
+        .iter()
+        .find(|row| row.set_id == beta.set.id)
+        .expect("beta row");
+    assert_eq!(alpha_row.reviews, 0);
+    assert_eq!(alpha_row.minutes, 0.0);
+    assert_eq!(beta_row.reviews, 1);
+
+    // Studying after a reset counts for the set and for the global totals again.
+    sessions::record_review(
+        &db.pool,
+        &alpha.cards[0].card.id,
+        Outcome::Correct,
+        "flashcards",
+        400,
+    )
+    .await
+    .expect("review after reset");
+    let resumed = statistics::set_statistics(&db.pool, &alpha.set.id)
+        .await
+        .expect("alpha statistics after new review");
+    assert_eq!(resumed.reviews, 1);
+    assert_eq!(resumed.cards_detail[0].correct, 1);
+
+    // A second reset stays idempotent and still leaves global totals alone.
+    sessions::reset_set(&db.pool, &alpha.set.id)
+        .await
+        .expect("second reset");
+    let repeated = statistics::statistics(&db.pool, 30, 20)
+        .await
+        .expect("global statistics after second reset");
+    assert_eq!(repeated.totals.reviews_today, 4);
+    assert_eq!(
+        repeated.totals.streak_days,
+        before_dashboard.totals.streak_days
+    );
+    let reset_again = statistics::set_statistics(&db.pool, &alpha.set.id)
+        .await
+        .expect("alpha statistics after second reset");
+    assert_eq!(reset_again.reviews, 0);
+
+    assert!(
+        sessions::reset_set(&db.pool, "missing-set").await.is_err(),
+        "resetting an unknown set reports an error"
+    );
+
+    db.cleanup().await;
+}
