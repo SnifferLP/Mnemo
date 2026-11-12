@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import {
   ArrowLeft,
@@ -12,6 +12,7 @@ import {
   RotateCcw,
   Shuffle,
   Sparkles,
+  Star,
   Volume2,
   X,
   XCircle,
@@ -19,6 +20,7 @@ import {
 import { toast } from "sonner";
 
 import { api } from "@/lib/api";
+import { flashcardSides, parseFlashcardOptions } from "@/lib/flashcards";
 import {
   pendingCards,
   tallyOutcomes,
@@ -45,6 +47,45 @@ interface Summary {
   seconds: number;
 }
 
+/** Star control on a card face. It sits inside the flip button, so it stops the
+ * click from also flipping the card. */
+function StarToggle({
+  starred,
+  onToggle,
+  label,
+}: {
+  starred: boolean;
+  onToggle: () => void;
+  label: string;
+}) {
+  return (
+    <span
+      role="button"
+      tabIndex={0}
+      aria-pressed={starred}
+      aria-label={label}
+      title={label}
+      onClick={(event) => {
+        event.stopPropagation();
+        onToggle();
+      }}
+      onKeyDown={(event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        event.stopPropagation();
+        onToggle();
+      }}
+      className={cn(
+        "flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] transition-colors",
+        starred ? "text-warning hover:bg-warning/10" : "text-muted-foreground hover:bg-secondary",
+      )}
+    >
+      <Star className={cn("size-3.5", starred && "fill-warning")} />
+      {label}
+    </span>
+  );
+}
+
 export function StudySessionPage() {
   const { id = "", mode: rawMode = "flashcards" } = useParams();
   const mode = (["flashcards", "spaced", "adaptive", "write"].includes(rawMode)
@@ -53,6 +94,8 @@ export function StudySessionPage() {
   const navigate = useNavigate();
   const { t } = useI18n();
   const { settings } = useSettings();
+  const [searchParams] = useSearchParams();
+  const options = useMemo(() => parseFlashcardOptions(searchParams), [searchParams]);
   const modeName = t(
     mode === "flashcards"
       ? "Flashcards"
@@ -94,7 +137,7 @@ export function StudySessionPage() {
     try {
       const data = await api.sets.get(id);
       setDetail(data);
-      const cards = uniqueCards(await api.learning.queue(id, mode, 0));
+      const cards = uniqueCards(await api.learning.queue(id, mode, 0, options.starredOnly));
       setQueue(mode === "flashcards" && settings.shuffleCards ? shuffleArray(cards) : cards);
       startedRef.current = Date.now();
       finishedRef.current = false;
@@ -115,7 +158,7 @@ export function StudySessionPage() {
     } finally {
       setLoading(false);
     }
-  }, [id, mode, settings.shuffleCards]);
+  }, [id, mode, options.starredOnly, settings.shuffleCards]);
 
   useEffect(() => {
     void load();
@@ -167,6 +210,28 @@ export function StudySessionPage() {
     [index, mode, queue],
   );
 
+  const current = queue[index];
+  // The chosen direction only changes what is displayed; the stored card keeps
+  // its own front and back.
+  const sides = current ? flashcardSides(current.card, options.direction) : null;
+
+  const toggleStar = useCallback(async () => {
+    if (!current) return;
+    const next = !current.card.isStarred;
+    try {
+      await api.cards.setStarred(current.card.id, next);
+      setQueue((items) =>
+        items.map((item) =>
+          item.card.id === current.card.id
+            ? { ...item, card: { ...item.card, isStarred: next } }
+            : item,
+        ),
+      );
+    } catch (err) {
+      toast.error(errorMessage(err));
+    }
+  }, [current]);
+
   const advance = useCallback(() => {
     if (index + 1 < queue.length) {
       setIndex(index + 1);
@@ -199,7 +264,6 @@ export function StudySessionPage() {
     setFeedback(null);
   };
 
-  const current = queue[index];
   const tally = useMemo(
     () => tallyOutcomes(Object.keys(outcomes), outcomes),
     [outcomes],
@@ -289,22 +353,41 @@ export function StudySessionPage() {
         onExit={() => navigate(`/sets/${id}`)}
       >
         <Card className="mx-auto max-w-lg p-8 text-center">
-          <Clock className="mx-auto size-8 text-muted-foreground" />
+          {options.starredOnly ? (
+            <Star className="mx-auto size-8 text-warning" />
+          ) : (
+            <Clock className="mx-auto size-8 text-muted-foreground" />
+          )}
           <h2 className="mt-3 text-lg font-semibold">
-            {t(mode === "spaced" ? "Nothing is due right now" : "This set has no cards yet")}
+            {options.starredOnly
+              ? t("No starred terms in this set")
+              : t(mode === "spaced" ? "Nothing is due right now" : "This set has no cards yet")}
           </h2>
           <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
             {t(
-              mode === "spaced"
-                ? "Your spaced repetition schedule is clear. Come back later, or study ahead with flashcards."
-                : "Add cards to this set before starting a study session.",
+              options.starredOnly
+                ? "Star the terms you want to focus on, then start a starred-only session."
+                : mode === "spaced"
+                  ? "Your spaced repetition schedule is clear. Come back later, or study ahead with flashcards."
+                  : "Add cards to this set before starting a study session.",
             )}
           </p>
           <div className="mt-5 flex justify-center gap-2">
-            <Button variant="outline" onClick={() => navigate(`/sets/${id}/edit`)}>
-              {t("Open editor")}
+            <Button
+              variant="outline"
+              onClick={() =>
+                options.starredOnly ? navigate(`/sets/${id}`) : navigate(`/sets/${id}/edit`)
+              }
+            >
+              {t(options.starredOnly ? "Back to set" : "Open editor")}
             </Button>
-            <Button onClick={() => navigate(`/sets/${id}/study/flashcards`)}>
+            <Button
+              onClick={() =>
+                options.starredOnly
+                  ? navigate(`/sets/${id}/study/${mode}`)
+                  : navigate(`/sets/${id}/study/flashcards`)
+              }
+            >
               {t("Study all cards")}
             </Button>
           </div>
@@ -388,6 +471,10 @@ export function StudySessionPage() {
   const progress = ((index + 1) / queue.length) * 100;
   const right = (
     <>
+      {!isRecall && options.direction === "back" && (
+        <Badge variant="outline">{t("Back first")}</Badge>
+      )}
+      {options.starredOnly && <Badge variant="warning">{t("Starred only")}</Badge>}
       <Badge variant="outline" className="gap-1.5">
         <Clock className="size-3" /> {formatClock(elapsed)}
       </Badge>
@@ -403,6 +490,7 @@ export function StudySessionPage() {
       subtitle={modeName}
       onExit={() => navigate(`/sets/${id}`)}
       right={right}
+      width={isRecall ? "max-w-4xl" : "max-w-5xl"}
     >
       <div className="mb-5">
         <Progress value={progress} />
@@ -417,26 +505,31 @@ export function StudySessionPage() {
         </div>
       </div>
 
-      {!isRecall && current && (
+      {!isRecall && current && sides && (
         <>
           <div className="[perspective:1800px]">
             <button
               onClick={() => setFlipped((value) => !value)}
-              className="relative block h-[360px] w-full text-left outline-none"
+              className="relative block h-[clamp(360px,58vh,620px)] w-full text-left outline-none"
             >
               <div className={cn("card-3d relative h-full w-full", flipped && "flipped")}>
-                <div className="card-face absolute inset-0 flex flex-col rounded-2xl bg-card p-7 shadow-soft">
-                  <div className="mb-3 flex items-center justify-between">
+                <div className="card-face absolute inset-0 flex flex-col rounded-2xl bg-card p-6 shadow-soft sm:p-9">
+                  <div className="mb-3 flex items-center justify-between gap-3">
                     <span className="text-[10.5px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                      {t("Front")}
+                      {t(sides.promptLabel)}
                     </span>
-                    <span className="text-[10.5px] text-muted-foreground">
-                      {t("{count} chars", { count: current.card.front.length })}
+                    <span className="flex items-center gap-3 text-[10.5px] text-muted-foreground">
+                      {t("{count} chars", { count: sides.prompt.length })}
+                      <StarToggle
+                        starred={current.card.isStarred}
+                        onToggle={() => void toggleStar()}
+                        label={t(current.card.isStarred ? "Starred" : "Star")}
+                      />
                     </span>
                   </div>
                   <div className="flex flex-1 items-center justify-center overflow-y-auto px-2">
-                    <Markdown className="display text-center text-[28px] leading-snug">
-                      {current.card.front}
+                    <Markdown className="display text-center text-[clamp(1.6rem,3.1vw,2.4rem)] leading-snug">
+                      {sides.prompt}
                     </Markdown>
                   </div>
                   <div className="mt-auto flex items-center justify-center text-[11px] text-muted-foreground">
@@ -444,32 +537,39 @@ export function StudySessionPage() {
                   </div>
                 </div>
 
-                <div className="card-face card-face-back absolute inset-0 flex flex-col rounded-2xl bg-card p-7 shadow-lift ring-1 ring-primary/20">
-                  <div className="mb-3 flex items-center justify-between">
+                <div className="card-face card-face-back absolute inset-0 flex flex-col rounded-2xl bg-card p-6 shadow-lift ring-1 ring-primary/20 sm:p-9">
+                  <div className="mb-3 flex items-center justify-between gap-3">
                     <span className="text-[10.5px] font-semibold uppercase tracking-[0.18em] text-primary/80">
-                      {t("Back")}
+                      {t(sides.answerLabel)}
                     </span>
-                    {current.card.audioPath && (
-                      <span
-                        role="button"
-                        tabIndex={0}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          void new Audio(convertFileSrc(current.card.audioPath!)).play();
-                        }}
-                        className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] text-primary hover:bg-primary/10"
-                      >
-                        <Volume2 className="size-3.5" /> {t("Play")}
-                      </span>
-                    )}
+                    <span className="flex items-center gap-3">
+                      <StarToggle
+                        starred={current.card.isStarred}
+                        onToggle={() => void toggleStar()}
+                        label={t(current.card.isStarred ? "Starred" : "Star")}
+                      />
+                      {current.card.audioPath && (
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            void new Audio(convertFileSrc(current.card.audioPath!)).play();
+                          }}
+                          className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] text-primary hover:bg-primary/10"
+                        >
+                          <Volume2 className="size-3.5" /> {t("Play")}
+                        </span>
+                      )}
+                    </span>
                   </div>
                   <div className="flex flex-1 flex-col items-center justify-center gap-3 overflow-y-auto px-2">
-                    <Markdown className="display text-center text-[24px] leading-snug">{current.card.back}</Markdown>
+                    <Markdown className="display text-center text-[clamp(1.45rem,2.8vw,2.1rem)] leading-snug">{sides.answer}</Markdown>
                     {current.card.imagePath && (
                       <img
                         src={convertFileSrc(current.card.imagePath)}
                         alt=""
-                        className="max-h-[110px] rounded-xl object-contain"
+                        className="max-h-[220px] rounded-xl object-contain"
                       />
                     )}
                     {current.card.explanation && (

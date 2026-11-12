@@ -228,6 +228,19 @@ pub async fn delete(pool: &SqlitePool, id: &str) -> AppResult<Flashcard> {
     Ok(card)
 }
 
+/// Marks or unmarks one term. Star state is independent per card and is kept
+/// out of the study-set timestamp on purpose, so starring a term never
+/// reorders the library.
+pub async fn set_starred(pool: &SqlitePool, id: &str, starred: bool) -> AppResult<Flashcard> {
+    get(pool, id).await?;
+    sqlx::query("UPDATE flashcards SET is_starred = ? WHERE id = ?")
+        .bind(starred)
+        .bind(id)
+        .execute(pool)
+        .await?;
+    get(pool, id).await
+}
+
 pub async fn duplicate(pool: &SqlitePool, id: &str) -> AppResult<Flashcard> {
     let card = get(pool, id).await?;
     let position = next_position(pool, &card.set_id).await?;

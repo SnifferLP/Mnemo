@@ -113,6 +113,8 @@ export const api = {
     update: (id: string, input: CardInput) => call<Flashcard>("update_card", { id, input }),
     delete: (id: string) => call<void>("delete_card", { id }),
     duplicate: (id: string) => call<Flashcard>("duplicate_card", { id }),
+    setStarred: (id: string, starred: boolean) =>
+      call<Flashcard>("set_card_starred", { id, starred }),
     reorder: (setId: string, cardIds: string[]) =>
       call<void>("reorder_cards", { setId, cardIds }),
     attachMedia: (cardId: string, kind: "image" | "audio", path: string) =>
@@ -151,8 +153,8 @@ export const api = {
     restart: () => call<void>("restart_for_update"),
   },
   learning: {
-    queue: (setId: string, mode: string, limit = 0) =>
-      call<StudyCard[]>("get_learning_queue", { setId, mode, limit }),
+    queue: (setId: string, mode: string, limit = 0, starredOnly = false) =>
+      call<StudyCard[]>("get_learning_queue", { setId, mode, limit, starredOnly }),
     startSession: (setId: string | null, mode: string) =>
       call<string>("start_study_session", { setId, mode }),
     finishSession: (

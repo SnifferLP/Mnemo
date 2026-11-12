@@ -9,7 +9,7 @@ use mnemo_lib::export;
 use mnemo_lib::import;
 use mnemo_lib::learning::{self, TestAnswer, TestConfig};
 use mnemo_lib::models::{CardInput, CreateSetInput, UpdateSetInput};
-use mnemo_lib::services::{documents, sessions, sets};
+use mnemo_lib::services::{cards, documents, sessions, sets};
 use mnemo_lib::settings::{self, AppSettings};
 use mnemo_lib::spaced_repetition::Outcome;
 use mnemo_lib::statistics;
@@ -220,6 +220,82 @@ async fn crud_reviews_statistics_and_restart() {
         .await
         .expect("count");
     assert_eq!(remaining, 0);
+
+    db.cleanup().await;
+}
+
+#[tokio::test]
+async fn starred_terms_persist_independently_and_filter_the_queue() {
+    let mut db = TestDb::new().await;
+    let created = sets::create(
+        &db.pool,
+        set_input(
+            "Starred terms",
+            vec![card("One", "1"), card("Two", "2"), card("Three", "3")],
+        ),
+    )
+    .await
+    .expect("create");
+    let ids: Vec<String> = created
+        .cards
+        .iter()
+        .map(|item| item.card.id.clone())
+        .collect();
+
+    // Each term keeps its own state: starring the middle card changes nothing else.
+    let starred = cards::set_starred(&db.pool, &ids[1], true)
+        .await
+        .expect("star");
+    assert!(
+        starred.is_starred,
+        "the returned card reports its new state"
+    );
+
+    // Starred state must survive a full close/reopen cycle.
+    db.reopen().await;
+    let detail = sets::detail(&db.pool, &created.set.id)
+        .await
+        .expect("detail");
+    let flags: Vec<(String, bool)> = detail
+        .cards
+        .iter()
+        .map(|item| (item.card.front.clone(), item.card.is_starred))
+        .collect();
+    assert_eq!(
+        flags,
+        vec![
+            ("One".to_string(), false),
+            ("Two".to_string(), true),
+            ("Three".to_string(), false),
+        ]
+    );
+
+    // "Starred terms only" filters the queue before any mode ordering.
+    let all_cards = cards::list(&db.pool, &created.set.id).await.expect("cards");
+    let starred_queue = learning::select_queue(all_cards.clone(), "flashcards", 0, true);
+    assert_eq!(starred_queue.len(), 1);
+    assert_eq!(starred_queue[0].card.front, "Two");
+    assert_eq!(
+        learning::select_queue(all_cards, "flashcards", 0, false).len(),
+        3
+    );
+
+    // Unstarring restores the full queue.
+    let unstarred = cards::set_starred(&db.pool, &ids[1], false)
+        .await
+        .expect("unstar");
+    assert!(!unstarred.is_starred);
+    let after = cards::list(&db.pool, &created.set.id).await.expect("cards");
+    assert!(learning::select_queue(after, "flashcards", 0, true).is_empty());
+
+    // A duplicated card carries no star of its own.
+    cards::set_starred(&db.pool, &ids[0], true)
+        .await
+        .expect("star first");
+    let copy = cards::duplicate(&db.pool, &ids[0])
+        .await
+        .expect("duplicate");
+    assert!(!copy.is_starred);
 
     db.cleanup().await;
 }

@@ -36,44 +36,72 @@ fn seconds_to_minutes(seconds: i64) -> f64 {
     (seconds as f64 / 60.0 * 10.0).round() / 10.0
 }
 
+/// Local calendar days covered by an activity range: oldest first, ending on
+/// `today`.
+///
+/// Reports and charts both build their axis from this list: every entry is
+/// exactly one day, so a bar can never be drawn next to a neighbouring date or
+/// drift when a day has no activity at all.
+pub fn activity_date_range(days: i64, today: NaiveDate) -> Vec<NaiveDate> {
+    let days = days.clamp(1, 730);
+    (0..days)
+        .rev()
+        .map(|offset| today - Duration::days(offset))
+        .collect()
+}
+
+/// Local calendar day (`YYYY-MM-DD`) from a stored RFC3339 timestamp, matching
+/// the `substr(datetime(..., 'localtime'), 1, 10)` grouping used in SQL.
+fn local_day_expr(column: &str) -> String {
+    format!("substr(datetime({column}, 'localtime'), 1, 10)")
+}
+
 async fn session_seconds_by_day(
     pool: &SqlitePool,
-    since_iso: &str,
+    first_day: &str,
 ) -> AppResult<HashMap<String, i64>> {
-    let rows: Vec<(String, i64)> = sqlx::query_as(
-        "SELECT substr(datetime(started_at, 'localtime'), 1, 10) AS day,
+    let rows: Vec<(String, i64)> = sqlx::query_as(&format!(
+        "SELECT {} AS day,
                 COALESCE(SUM(duration_seconds), 0) AS seconds
          FROM study_sessions
-         WHERE started_at >= ? AND duration_seconds > 0
+         WHERE {} >= ? AND duration_seconds > 0
          GROUP BY day",
-    )
-    .bind(since_iso)
+        local_day_expr("started_at"),
+        local_day_expr("started_at")
+    ))
+    .bind(first_day)
     .fetch_all(pool)
     .await?;
     Ok(rows.into_iter().collect())
 }
 
-/// Daily review aggregates for the last `days` days, oldest first.
+/// Daily review aggregates for the last `days` local days, oldest first.
 pub async fn daily_activity(pool: &SqlitePool, days: i64) -> AppResult<Vec<DayActivity>> {
-    let days = days.clamp(1, 730);
-    let start = Utc::now() - Duration::days(days);
-    let start_iso = start.to_rfc3339_opts(chrono::SecondsFormat::Millis, true);
+    let range = activity_date_range(days, Local::now().date_naive());
+    let first_day = match range.first() {
+        Some(day) => day.to_string(),
+        None => return Ok(Vec::new()),
+    };
 
-    let rows: Vec<(String, i64, i64, i64)> = sqlx::query_as(
-        "SELECT substr(datetime(created_at, 'localtime'), 1, 10) AS day,
+    // The cutoff and the grouping use the same local calendar day, so the first
+    // bar of the range is complete instead of being cut at a UTC timestamp.
+    let rows: Vec<(String, i64, i64, i64)> = sqlx::query_as(&format!(
+        "SELECT {} AS day,
                 COUNT(*) AS reviews,
                 SUM(CASE WHEN outcome = 'correct' THEN 1 ELSE 0 END) AS correct,
                 COUNT(DISTINCT card_id) AS cards
          FROM card_reviews
-         WHERE created_at >= ?
+         WHERE {} >= ?
          GROUP BY day
          ORDER BY day",
-    )
-    .bind(&start_iso)
+        local_day_expr("created_at"),
+        local_day_expr("created_at")
+    ))
+    .bind(&first_day)
     .fetch_all(pool)
     .await?;
 
-    let mut sessions = session_seconds_by_day(pool, &start_iso).await?;
+    let mut sessions = session_seconds_by_day(pool, &first_day).await?;
 
     let mut by_day: HashMap<String, DayActivity> = HashMap::new();
     for (date, reviews, correct, cards) in rows {
@@ -100,10 +128,8 @@ pub async fn daily_activity(pool: &SqlitePool, days: i64) -> AppResult<Vec<DayAc
         );
     }
 
-    let today = Local::now().date_naive();
-    let mut out = Vec::with_capacity(days as usize);
-    for offset in (0..days).rev() {
-        let date = today - Duration::days(offset);
+    let mut out = Vec::with_capacity(range.len());
+    for date in range {
         let key = date.to_string();
         out.push(by_day.remove(&key).unwrap_or(DayActivity {
             date: key,
@@ -507,24 +533,31 @@ pub async fn set_statistics(
     .fetch_one(pool)
     .await?;
 
-    let daily_rows: Vec<(String, i64, i64, i64)> = sqlx::query_as(
-        "SELECT substr(datetime(created_at,'localtime'),1,10) AS day, COUNT(*),
+    let range = activity_date_range(30, Local::now().date_naive());
+    let first_day = range.first().map(|day| day.to_string()).unwrap_or_default();
+
+    let daily_rows: Vec<(String, i64, i64, i64)> = sqlx::query_as(&format!(
+        "SELECT {} AS day, COUNT(*),
                 SUM(CASE WHEN outcome='correct' THEN 1 ELSE 0 END),
                 COUNT(DISTINCT card_id)
-         FROM card_reviews WHERE set_id = ? AND created_at >= ?
+         FROM card_reviews WHERE set_id = ? AND {} >= ?
          GROUP BY day ORDER BY day",
-    )
+        local_day_expr("created_at"),
+        local_day_expr("created_at")
+    ))
     .bind(set_id)
-    .bind((Utc::now() - Duration::days(60)).to_rfc3339_opts(chrono::SecondsFormat::Millis, true))
+    .bind(&first_day)
     .fetch_all(pool)
     .await?;
 
-    let session_rows: Vec<(String, i64)> = sqlx::query_as(
-        "SELECT substr(datetime(started_at,'localtime'),1,10) AS day, COALESCE(SUM(duration_seconds),0)
-         FROM study_sessions WHERE set_id = ? AND started_at >= ? GROUP BY day",
-    )
+    let session_rows: Vec<(String, i64)> = sqlx::query_as(&format!(
+        "SELECT {} AS day, COALESCE(SUM(duration_seconds),0)
+         FROM study_sessions WHERE set_id = ? AND {} >= ? GROUP BY day",
+        local_day_expr("started_at"),
+        local_day_expr("started_at")
+    ))
     .bind(set_id)
-    .bind((Utc::now() - Duration::days(30)).to_rfc3339_opts(chrono::SecondsFormat::Millis, true))
+    .bind(&first_day)
     .fetch_all(pool)
     .await?;
     let mut session_map: HashMap<String, i64> = session_rows.into_iter().collect();
@@ -543,13 +576,12 @@ pub async fn set_statistics(
             },
         );
     }
-    let today = Local::now().date_naive();
-    let mut daily = Vec::new();
-    for offset in (0..30).rev() {
-        let date = (today - Duration::days(offset)).to_string();
-        daily.push(by_day.remove(&date).unwrap_or_else(|| DayActivity {
-            date: date.clone(),
-            minutes: seconds_to_minutes(session_map.remove(&date).unwrap_or(0)),
+    let mut daily = Vec::with_capacity(range.len());
+    for date in range {
+        let key = date.to_string();
+        daily.push(by_day.remove(&key).unwrap_or_else(|| DayActivity {
+            date: key.clone(),
+            minutes: seconds_to_minutes(session_map.remove(&key).unwrap_or(0)),
             ..Default::default()
         }));
     }
@@ -676,6 +708,52 @@ mod tests {
             day("2026-11-11"),
         );
         assert_eq!(stale, (0, 3, false));
+    }
+
+    #[test]
+    fn activity_range_covers_each_day_once_and_ends_today() {
+        let today = day("2026-11-12");
+        for (days, expected_first) in [
+            (7, "2026-11-06"),
+            (14, "2026-10-30"),
+            (30, "2026-10-14"),
+            (90, "2026-08-15"),
+            (365, "2025-11-13"),
+        ] {
+            let range = activity_date_range(days, today);
+            assert_eq!(range.len(), days as usize);
+            assert_eq!(range.first().unwrap(), &day(expected_first));
+            assert_eq!(range.last().unwrap(), &today);
+            for pair in range.windows(2) {
+                assert_eq!(pair[1] - pair[0], Duration::days(1));
+            }
+        }
+    }
+
+    #[test]
+    fn activity_range_spans_quiet_weeks_and_month_boundaries() {
+        // A range never skips days, so weeks without reviews still produce a
+        // bar and a date column instead of collapsing the axis.
+        let range = activity_date_range(10, day("2026-03-02"));
+        let labels: Vec<String> = range.iter().map(|date| date.to_string()).collect();
+        assert_eq!(
+            labels,
+            vec![
+                "2026-02-21",
+                "2026-02-22",
+                "2026-02-23",
+                "2026-02-24",
+                "2026-02-25",
+                "2026-02-26",
+                "2026-02-27",
+                "2026-02-28",
+                "2026-03-01",
+                "2026-03-02",
+            ]
+        );
+
+        assert_eq!(activity_date_range(0, day("2026-03-02")).len(), 1);
+        assert_eq!(activity_date_range(5_000, day("2026-03-02")).len(), 730);
     }
 
     #[test]

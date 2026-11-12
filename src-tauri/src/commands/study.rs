@@ -16,12 +16,18 @@ pub async fn get_learning_queue(
     set_id: String,
     mode: Option<String>,
     limit: Option<usize>,
+    starred_only: Option<bool>,
 ) -> AppResult<Vec<StudyCard>> {
     let pool = state.db().await;
     sets::ensure_active(&pool, &set_id).await?;
     let all = cards::list(&pool, &set_id).await?;
     let mode = mode.unwrap_or_else(|| "flashcards".into());
-    Ok(learning::select_queue(all, &mode, limit.unwrap_or(0)))
+    Ok(learning::select_queue(
+        all,
+        &mode,
+        limit.unwrap_or(0),
+        starred_only.unwrap_or(false),
+    ))
 }
 
 #[tauri::command]

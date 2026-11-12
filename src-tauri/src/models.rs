@@ -79,6 +79,7 @@ pub struct Flashcard {
     pub card_type: String,
     pub image_path: Option<String>,
     pub audio_path: Option<String>,
+    pub is_starred: bool,
     pub created_at: String,
     pub updated_at: String,
 }

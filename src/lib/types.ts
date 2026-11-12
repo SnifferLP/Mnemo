@@ -77,6 +77,7 @@ export interface Flashcard {
   cardType: string;
   imagePath: string | null;
   audioPath: string | null;
+  isStarred: boolean;
   createdAt: string;
   updatedAt: string;
 }

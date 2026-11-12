@@ -173,11 +173,21 @@ pub fn check_answer(
 // ---------------------------------------------------------------------------
 
 /// Orders cards for a mode. `adaptive` weights weak/overdue cards higher;
-/// `spaced` returns only due cards ordered by due date.
-pub fn select_queue(cards: Vec<StudyCard>, mode: &str, limit: usize) -> Vec<StudyCard> {
+/// `spaced` returns only due cards ordered by due date. `starred_only`
+/// restricts the queue to starred terms before any mode ordering is applied,
+/// so every mode studies the same selection.
+pub fn select_queue(
+    cards: Vec<StudyCard>,
+    mode: &str,
+    limit: usize,
+    starred_only: bool,
+) -> Vec<StudyCard> {
     let now: DateTime<Utc> = Utc::now();
     let mut rng = Rng::seeded();
     let mut result = cards;
+    if starred_only {
+        result.retain(|card| card.card.is_starred);
+    }
 
     match mode {
         "spaced" => {

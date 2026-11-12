@@ -881,4 +881,38 @@ export const de: Record<string, string> = {
     "Jedes Update wird vor der Installation mit Tauris Update-Signatur geprüft. Unsigned oder manipulierte Downloads werden abgelehnt.",
   "Update checks contact GitHub only. They never block startup, and a failed check leaves the current installation untouched.":
     "Update-Prüfungen kontaktieren nur GitHub. Sie blockieren den Start nicht, und eine fehlgeschlagene Prüfung lässt die aktuelle Installation unverändert.",
+
+  // Starred terms, flashcard options and the card preview
+  Star: "Markieren",
+  Starred: "Markiert",
+  "Star term": "Begriff markieren",
+  "Remove star": "Markierung entfernen",
+  "Flashcard preview": "Kartenvorschau",
+  "See the cards before you start": "Sieh dir die Karten vor dem Start an",
+  "Start learning": "Jetzt lernen",
+  "Start flashcards": "Karteikarten starten",
+  "Flip card": "Karte umdrehen",
+  Flip: "Umdrehen",
+  "Previous card": "Vorherige Karte",
+  "Next card": "Nächste Karte",
+  "Click the card to reveal the answer": "Klicke auf die Karte, um die Antwort aufzudecken",
+  "Click the card to see the front again": "Klicke auf die Karte, um wieder die Vorderseite zu sehen",
+  "Choose how the cards are shown and which terms to study. Nothing is changed in this set.":
+    "Lege fest, wie die Karten angezeigt werden und welche Begriffe du lernst. Am Lernset ändert sich nichts.",
+  "Card direction": "Kartenrichtung",
+  "Front side first": "Vorderseite zuerst",
+  "See the term and reveal the answer": "Sieh den Begriff und decke die Antwort auf",
+  "Back side first": "Rückseite zuerst",
+  "See the answer and reveal the term": "Sieh die Antwort und decke den Begriff auf",
+  "Card selection": "Kartenauswahl",
+  "All terms": "Alle Begriffe",
+  "{count} cards in this set": "{count} Karten in diesem Lernset",
+  "Starred terms only": "Nur markierte Begriffe",
+  "{count} starred": "{count} markiert",
+  "Star a term first to use this option": "Markiere zuerst einen Begriff, um diese Option zu nutzen",
+  "Back first": "Rückseite zuerst",
+  "Starred only": "Nur markierte",
+  "No starred terms in this set": "Keine markierten Begriffe in diesem Lernset",
+  "Star the terms you want to focus on, then start a starred-only session.":
+    "Markiere die Begriffe, auf die du dich konzentrieren willst, und starte dann eine Sitzung nur mit markierten Begriffen.",
 };

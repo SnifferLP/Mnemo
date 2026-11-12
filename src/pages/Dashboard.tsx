@@ -157,6 +157,45 @@ export function DashboardPage() {
 
       {data && totals && (totals.sets > 0 || totals.reviews7d > 0 || totals.longestStreak > 0) && (
         <div className="space-y-6">
+          <section>
+            <SectionTitle
+              title={t("Continue where you left off")}
+              description={t("Sets with cards waiting for review")}
+              action={
+                <Button variant="ghost" size="sm" onClick={() => navigate("/sets")}>
+                  {t("All sets")} <ArrowRight className="size-3.5" />
+                </Button>
+              }
+            />
+            {data.continueSets.length === 0 && data.recentSets.length === 0 ? (
+              <EmptyState
+                icon={Brain}
+                title={t("No study sets yet")}
+                description={t(
+                  "Create your first set, paste existing flashcards, or let AI build them from your notes.",
+                )}
+                action={
+                  <div className="flex flex-wrap justify-center gap-2">
+                    <Button onClick={() => navigate("/create")}>
+                      <Plus /> {t("Create a set")}
+                    </Button>
+                    <Button variant="outline" onClick={() => navigate("/magic-notes")}>
+                      <Sparkles /> {t("Use Magic Notes")}
+                    </Button>
+                  </div>
+                }
+              />
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {(data.continueSets.length > 0 ? data.continueSets : data.recentSets)
+                  .slice(0, 3)
+                  .map((set) => (
+                    <StudySetCard key={set.id} set={set} folders={folders} onChanged={load} />
+                  ))}
+              </div>
+            )}
+          </section>
+
           <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[1.25fr_1fr_1fr_1fr]">
             <Card className="relative flex flex-col overflow-hidden bg-primary p-5 text-primary-foreground shadow-lift">
               <div className="flex items-center justify-between gap-3">
@@ -312,45 +351,6 @@ export function DashboardPage() {
                 <ArrowRight className="size-3.5" />
               </Button>
             </Card>
-          </section>
-
-          <section>
-            <SectionTitle
-              title={t("Continue where you left off")}
-              description={t("Sets with cards waiting for review")}
-              action={
-                <Button variant="ghost" size="sm" onClick={() => navigate("/sets")}>
-                  {t("All sets")} <ArrowRight className="size-3.5" />
-                </Button>
-              }
-            />
-            {data.continueSets.length === 0 && data.recentSets.length === 0 ? (
-              <EmptyState
-                icon={Brain}
-                title={t("No study sets yet")}
-                description={t(
-                  "Create your first set, paste existing flashcards, or let AI build them from your notes.",
-                )}
-                action={
-                  <div className="flex flex-wrap justify-center gap-2">
-                    <Button onClick={() => navigate("/create")}>
-                      <Plus /> {t("Create a set")}
-                    </Button>
-                    <Button variant="outline" onClick={() => navigate("/magic-notes")}>
-                      <Sparkles /> {t("Use Magic Notes")}
-                    </Button>
-                  </div>
-                }
-              />
-            ) : (
-              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                {(data.continueSets.length > 0 ? data.continueSets : data.recentSets)
-                  .slice(0, 3)
-                  .map((set) => (
-                    <StudySetCard key={set.id} set={set} folders={folders} onChanged={load} />
-                  ))}
-              </div>
-            )}
           </section>
 
           <section className="grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">

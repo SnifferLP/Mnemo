@@ -2,6 +2,33 @@
 
 All notable changes to Mnemo are documented here. The project follows [Semantic Versioning](https://semver.org/).
 
+## [1.2.5-rc.1] - 2026-11-12
+
+A feature and correctness release for learning sessions. Existing study sets, progress and review history are unchanged; starring is additive and every older card starts unstarred.
+
+### Added
+
+- Starred terms. Individual cards can be starred and unstarred from a learning session, from the set's card list and from the new flashcard preview. Star state is per card, is stored in the database and survives leaving the set, restarting the application and exporting a backup.
+- Flashcard options before a session: front side first (default) or back side first, combined with all terms or starred terms only. Both choices are carried through the whole session in the session URL and never modify the stored cards.
+- A flashcard preview on the learning set page. It shows a real card from the set, flips on click or with the Flip button, pages through every card and starts a learning session directly. The rest of the page is unchanged.
+- Starred term counts on the set page and a starred-only badge during a session.
+
+### Changed
+
+- Flashcards are significantly larger in the flashcards and spaced repetition modes: the card grows with the window height, padding and type scale are larger and the session uses more of the available width. Nothing else about those modes changed.
+- The "Continue where you left off" section is now the first block of the dashboard, above the metrics, so an in-progress set is one click away. Its content and behaviour are unchanged.
+
+### Fixed
+
+- Learning activity dates no longer drift away from their bars on the dashboard, the statistics page and the set page. Bars were left-aligned inside their flexible column while the date label was centred, so every label sat to the right of its own bar. Bars and labels now share one column grid, labels are evenly spaced across the whole range including the newest day, and the gutters narrow for long ranges so a year of bars still fits.
+- Activity ranges are built from local calendar days only. The review cutoff was previously a UTC timestamp while the rows were grouped by local day, which could cut the first day of a range short and made empty weeks shift the axis. Ranges now always contain one entry per day, including days without activity.
+
+### Internal
+
+- New migration `0004_card_stars.sql` adds `flashcards.is_starred` and an index; older databases upgrade in place.
+- `select_queue` takes a starred-only flag, so every study mode filters the same way, and `activity_date_range` is covered by unit tests across 7, 14, 30, 90 and 365 day ranges.
+- Frontend tests cover the activity axis helpers and the flashcard option helpers; the Rust suite covers starring persistence and starred queue filtering.
+
 ## [1.2.4] - 2026-11-11
 
 Final polish for the redesigned interface. All existing navigation, learning modes and stored data are unchanged.

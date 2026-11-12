@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { activityBarGap, activityLabelIndices } from "@/lib/chart";
 import { cn, shortDate } from "@/lib/utils";
 import { useI18n } from "@/i18n";
 import type { DayActivity, MasteryBucket } from "@/lib/types";
@@ -63,16 +64,27 @@ export function ActivityChart({
 }) {
   const { t } = useI18n();
   const max = Math.max(1, ...data.map((d) => d.reviews));
-  const labelEvery = Math.max(1, Math.ceil(data.length / 7));
+  const labels = useMemo(
+    () => new Set(activityLabelIndices(data.length)),
+    [data.length],
+  );
+
+  // Bars and labels share one column template, so a date always sits directly
+  // under the bar of its own day — for a week as well as for a full year, and
+  // for days without any activity.
+  const columns = {
+    gridTemplateColumns: `repeat(${Math.max(1, data.length)}, minmax(0, 1fr))`,
+    gap: `${activityBarGap(data.length)}px`,
+  };
 
   return (
     <div className="w-full">
-      <div className="flex items-end gap-[3px]" style={{ height }}>
-        {data.map((day, index) => {
+      <div className="grid items-end" style={{ ...columns, height }}>
+        {data.map((day) => {
           const ratio = day.reviews / max;
           const barHeight = day.reviews === 0 ? 3 : Math.max(6, ratio * height);
           return (
-            <div key={day.date} className="group relative flex h-full flex-1 items-end">
+            <div key={day.date} className="group relative flex h-full items-end justify-center">
               <div
                 className={cn(
                   "w-full max-w-[22px] rounded-[5px] transition-all duration-300",
@@ -92,16 +104,21 @@ export function ActivityChart({
                   })}
                 </div>
               </div>
-              {index % labelEvery === 0 && (
-                <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap text-[9px] font-medium text-muted-foreground/70">
-                  {shortDate(day.date)}
-                </span>
-              )}
             </div>
           );
         })}
       </div>
-      <div className="h-6" />
+      <div className="mt-2 grid" style={columns}>
+        {data.map((day, index) => (
+          <div key={day.date} className="relative h-3.5">
+            {labels.has(index) && (
+              <span className="absolute left-1/2 top-0 -translate-x-1/2 whitespace-nowrap text-[9px] font-medium text-muted-foreground/70">
+                {shortDate(day.date)}
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

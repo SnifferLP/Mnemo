@@ -41,6 +41,7 @@ Screenshots use neutral sample content from a development profile and show both 
 
 - **Library management** — folders, tags, favourites, search, sorting, duplication, archiving and progress reset.
 - **Rich cards** — front and back text, explanations, hints, images and audio attachments.
+- **Starred terms and flashcard options** — star individual terms, start a session with the front or back side first, limit it to starred terms, and preview a real card directly on the set page.
 - **Study modes** — flashcards, adaptive learning, writing practice, SM-2 spaced repetition, practice tests and a matching game.
 - **Insights** — due counts, daily goals, timezone-stable current and longest streaks, activity ranges, a 30-week heatmap and per-set progress.
 - **Import and export** — CSV, TSV, JSON and Quizlet-style text import; CSV, TSV, JSON, Markdown and PDF export.
@@ -263,7 +264,7 @@ cargo clippy --all-targets --all-features -- -D warnings
 cargo test --all-targets
 ```
 
-The current local suite contains **31 Rust unit tests**, **14 Rust integration tests** and **21 frontend tests**. The frontend suite covers learning-round state, settings merging, update-channel persistence and translation catalogues. Rust tests cover SM-2 scheduling, answer normalization, import/export, AI request construction, settings sanitization, database migrations, CRUD, document removal, updater channel selection, statistics, persistence, archive round trips and upgrade behavior.
+The current local suite contains **33 Rust unit tests**, **15 Rust integration tests** and **30 frontend tests**. The frontend suite covers learning-round state, activity-chart axis helpers, flashcard option helpers, settings merging, update-channel persistence and translation catalogues. Rust tests cover SM-2 scheduling, answer normalization, import/export, AI request construction, settings sanitization, database migrations, CRUD, document removal, updater channel selection, statistics, persistence, starred terms, archive round trips and upgrade behavior.
 
 GitHub Actions also runs the Rust suite on Windows, builds the NSIS installer, builds Linux AppImage/`.deb` bundles and builds the Arch package. A successful compile is not a substitute for manual testing of Windows installation, display scaling, audio playback and other interactive behavior; see [`docs/RELEASING.md`](docs/RELEASING.md) for the manual QA checklist.
 

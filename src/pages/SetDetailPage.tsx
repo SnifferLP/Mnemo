@@ -27,10 +27,13 @@ import { toast } from "sonner";
 
 import { api } from "@/lib/api";
 import type { SetStatistics, StudySetDetail } from "@/lib/types";
+import { flashcardQuery, starredCount as countStarred, type FlashcardOptions } from "@/lib/flashcards";
 import { cn, errorMessage, formatDuration, formatRelative, pct } from "@/lib/utils";
 import { useI18n } from "@/i18n";
 import { ActivityChart, Ring } from "@/components/charts";
 import { EmptyState, ErrorPanel, LoadingPanel, PageHeader, StatCard } from "@/components/common";
+import { FlashcardOptionsDialog } from "@/components/study/FlashcardOptionsDialog";
+import { FlashcardPreview } from "@/components/study/FlashcardPreview";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -127,6 +130,7 @@ export function SetDetailPage() {
   const [exportOpen, setExportOpen] = useState(false);
   const [exportFormat, setExportFormat] = useState("json");
   const [exporting, setExporting] = useState(false);
+  const [optionsOpen, setOptionsOpen] = useState(false);
 
   const load = useCallback(async () => {
     setError(null);
@@ -152,6 +156,8 @@ export function SetDetailPage() {
     ? Math.round((detail.masteredCount / detail.cards.length) * 100)
     : 0;
 
+  const starredTotal = useMemo(() => (detail ? countStarred(detail.cards) : 0), [detail]);
+
   const filteredCards = useMemo(() => {
     if (!detail) return [];
     const needle = search.trim().toLowerCase();
@@ -176,6 +182,31 @@ export function SetDetailPage() {
     } catch (err) {
       toast.error(errorMessage(err));
     }
+  };
+
+  const toggleStar = async (cardId: string, starred: boolean) => {
+    try {
+      await api.cards.setStarred(cardId, starred);
+      setDetail((prev) =>
+        prev
+          ? {
+              ...prev,
+              cards: prev.cards.map((item) =>
+                item.card.id === cardId
+                  ? { ...item, card: { ...item.card, isStarred: starred } }
+                  : item,
+              ),
+            }
+          : prev,
+      );
+    } catch (err) {
+      toast.error(errorMessage(err));
+    }
+  };
+
+  const startFlashcards = (options: FlashcardOptions) => {
+    setOptionsOpen(false);
+    navigate(`/sets/${id}/study/flashcards${flashcardQuery(options)}`);
   };
 
   const duplicate = async () => {
@@ -286,7 +317,7 @@ export function SetDetailPage() {
                 <ArchiveRestore /> {t("Restore")}
               </Button>
             ) : (
-              <Button onClick={() => navigate(`/sets/${id}/study/flashcards`)}>
+              <Button onClick={() => setOptionsOpen(true)}>
                 <Play /> {t("Study")}
               </Button>
             )}
@@ -343,6 +374,11 @@ export function SetDetailPage() {
 
       <div className="mb-5 flex flex-wrap items-center gap-1.5">
         <Badge variant="secondary">{t("{count} cards", { count: detail.cards.length })}</Badge>
+        {starredTotal > 0 && (
+          <Badge variant="warning">
+            <Star className="mr-1 size-3 fill-warning" /> {t("{count} starred", { count: starredTotal })}
+          </Badge>
+        )}
         {isArchived && <Badge variant="warning"><Archive className="mr-1 size-3" /> {t("Archived")}</Badge>}
         {detail.folderName && <Badge variant="outline">{t("Folder")} · {detail.folderName}</Badge>}
         {detail.tags.map((tag) => (
@@ -351,6 +387,14 @@ export function SetDetailPage() {
           </Badge>
         ))}
       </div>
+
+      {!isArchived && detail.cards.length > 0 && (
+        <FlashcardPreview
+          cards={detail.cards}
+          onStart={() => navigate(`/sets/${id}/study/flashcards`)}
+          onToggleStar={(cardId, starred) => void toggleStar(cardId, starred)}
+        />
+      )}
 
       <div className="mb-6 grid gap-4 stagger sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
@@ -422,7 +466,11 @@ export function SetDetailPage() {
               return (
                 <button
                   key={mode.id}
-                  onClick={() => navigate(`/sets/${id}/study/${mode.id}`)}
+                  onClick={() =>
+                    mode.id === "flashcards"
+                      ? setOptionsOpen(true)
+                      : navigate(`/sets/${id}/study/${mode.id}`)
+                  }
                   className="group flex min-h-[152px] flex-col items-start rounded-xl bg-card p-5 text-left shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lift"
                 >
                   <span className={cn("grid size-10 place-items-center rounded-xl", mode.iconClass)}>
@@ -578,6 +626,20 @@ export function SetDetailPage() {
                         </div>
                       </div>
                       <div className="flex shrink-0 items-center gap-1.5">
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-pressed={card.card.isStarred}
+                          aria-label={t(card.card.isStarred ? "Remove star" : "Star term")}
+                          onClick={() => void toggleStar(card.card.id, !card.card.isStarred)}
+                        >
+                          <Star
+                            className={cn(
+                              "size-4",
+                              card.card.isStarred && "fill-warning text-warning",
+                            )}
+                          />
+                        </Button>
                         {card.card.audioPath && (
                           <Button variant="ghost" size="icon-sm" onClick={() => playAudio(card.card.audioPath!)}>
                             <Volume2 />
@@ -662,6 +724,14 @@ export function SetDetailPage() {
           )}
         </TabsContent>
       </Tabs>
+
+      <FlashcardOptionsDialog
+        open={optionsOpen}
+        onOpenChange={setOptionsOpen}
+        cardCount={detail.cards.length}
+        starredCount={starredTotal}
+        onStart={startFlashcards}
+      />
 
       <Dialog open={exportOpen} onOpenChange={setExportOpen}>
         <DialogContent>

@@ -248,6 +248,16 @@ pub async fn duplicate_card(state: State<'_, AppState>, id: String) -> AppResult
 }
 
 #[tauri::command]
+pub async fn set_card_starred(
+    state: State<'_, AppState>,
+    id: String,
+    starred: bool,
+) -> AppResult<Flashcard> {
+    let pool = state.db().await;
+    cards::set_starred(&pool, &id, starred).await
+}
+
+#[tauri::command]
 pub async fn reorder_cards(
     state: State<'_, AppState>,
     set_id: String,

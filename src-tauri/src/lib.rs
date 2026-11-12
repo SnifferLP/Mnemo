@@ -96,6 +96,7 @@ pub fn run() {
             commands::library::update_card,
             commands::library::delete_card,
             commands::library::duplicate_card,
+            commands::library::set_card_starred,
             commands::library::reorder_cards,
             commands::library::attach_card_media,
             commands::library::attach_card_media_bytes,
