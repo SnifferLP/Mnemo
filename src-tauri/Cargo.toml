@@ -1,6 +1,6 @@
 [package]
 name = "mnemo"
-version = "1.2.5-rc.3"
+version = "1.2.5-rc.4"
 description = "Local-first desktop study platform with flashcards and spaced repetition"
 authors = ["Mnemo contributors"]
 edition = "2021"

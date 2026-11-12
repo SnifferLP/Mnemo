@@ -5,6 +5,18 @@
 @import "@fontsource-variable/jetbrains-mono/index.css";
 @import "tailwindcss";
 
+/*
+ * Monocraft (SIL OFL 1.1, © 2022 Idrees Hassan) is shipped as a self-hosted
+ * font file so the optional typeface works offline on Linux and Windows.
+ */
+@font-face {
+  font-family: "Monocraft";
+  src: url("./assets/fonts/Monocraft.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme inline {
@@ -65,6 +77,7 @@
   --radius: 0.75rem;
   --display-font-family: var(--font-serif);
   --display-font-weight: 400;
+  --font-monocraft: "Monocraft", "Instrument Sans", ui-monospace, monospace;
 
   /* Cool neutral canvas, white cards, cobalt accent. */
   --canvas: oklch(0.966 0.008 255);
@@ -115,6 +128,28 @@
 :root[data-display-font="modern"] {
   --display-font-family: var(--font-modern);
   --display-font-weight: 500;
+}
+
+/*
+ * The optional pixel typeface replaces both the interface and the display
+ * face, so it reaches navigation, dialogs, forms and study views alike. Only
+ * monospaced utility text (code, key caps) keeps its own family, and the
+ * single regular weight is not synthesised into a smeared faux bold.
+ */
+:root[data-display-font="monocraft"] {
+  --font-sans: var(--font-monocraft);
+  --display-font-family: var(--font-monocraft);
+  --display-font-weight: 400;
+  font-synthesis: none;
+}
+
+:root[data-display-font="monocraft"] h1,
+:root[data-display-font="monocraft"] h2,
+:root[data-display-font="monocraft"] h3,
+:root[data-display-font="monocraft"] h4,
+:root[data-display-font="monocraft"] .display,
+:root[data-display-font="monocraft"] .metric {
+  letter-spacing: 0;
 }
 
 .dark {

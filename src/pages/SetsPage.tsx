@@ -6,7 +6,9 @@ import { toast } from "sonner";
 
 import { api } from "@/lib/api";
 import type { FolderNode, StudySetSummary, Tag } from "@/lib/types";
+import { isMonocraftSeed } from "@/lib/monocraft";
 import { cn, errorMessage } from "@/lib/utils";
+import { useSettings } from "@/context/SettingsContext";
 import { useI18n } from "@/i18n";
 import { EmptyState, LoadingPanel, PageHeader } from "@/components/common";
 import { StudySetCard } from "@/components/StudySetCard";
@@ -36,6 +38,7 @@ const SORTS = [
 export function SetsPage({ archivedView = false }: { archivedView?: boolean }) {
   const navigate = useNavigate();
   const { t, tp } = useI18n();
+  const { settings, update } = useSettings();
   const [sets, setSets] = useState<StudySetSummary[]>([]);
   const [folders, setFolders] = useState<FolderNode[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
@@ -91,6 +94,11 @@ export function SetsPage({ archivedView = false }: { archivedView?: boolean }) {
     setBusy(true);
     try {
       const created = await api.sets.create({ title: newTitle.trim() });
+      // Secret: the first still-empty set with the seed name unlocks the
+      // optional typeface and switches to it once. Renames never run this.
+      if (!settings.monocraftUnlocked && isMonocraftSeed(created.set.title, created.cards.length)) {
+        await update({ monocraftUnlocked: true, displayFont: "monocraft" });
+      }
       toast.success(t("Study set created"));
       setCreating(false);
       setNewTitle("");

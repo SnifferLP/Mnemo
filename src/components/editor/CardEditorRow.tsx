@@ -22,7 +22,7 @@ import { toast } from "sonner";
 import { api } from "@/lib/api";
 import type { Flashcard, StudyCard } from "@/lib/types";
 import { CARD_TYPES, cn, errorMessage } from "@/lib/utils";
-import { normalizeTerm } from "@/lib/duplicates";
+import { cardKey } from "@/lib/duplicates";
 import { useI18n } from "@/i18n";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -111,9 +111,11 @@ export function CardEditorRow({
     draft.cardType !== card.cardType;
 
   // Compared against the live draft so the warning disappears as soon as the
-  // term is corrected, and appears while typing rather than after the save.
+  // card is corrected, and appears while typing rather than after the save.
+  // Both sides have to match: a shared term with another definition is a
+  // different card.
   const duplicateOfId = (() => {
-    const key = normalizeTerm(draft.front);
+    const key = cardKey(draft.front, draft.back);
     if (!key) return null;
     const original = termIndex.get(key);
     return original && original !== card.id ? original : null;
@@ -451,7 +453,7 @@ export function DraftCardRow({
   const [busy, setBusy] = useState(false);
   const frontRef = useRef<HTMLTextAreaElement>(null);
 
-  const draftKey = normalizeTerm(front);
+  const draftKey = cardKey(front, back);
   const duplicateOfId = draftKey ? (termIndex.get(draftKey) ?? null) : null;
 
   const submit = async () => {

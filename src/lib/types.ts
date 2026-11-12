@@ -1,5 +1,5 @@
 export type Theme = "dark" | "light" | "system";
-export type DisplayFont = "editorial" | "modern";
+export type DisplayFont = "editorial" | "modern" | "monocraft";
 export type Language = "en" | "de";
 export type UpdateChannel = "stable" | "prerelease";
 
@@ -7,6 +7,8 @@ export interface AppSettings {
   theme: Theme;
   accent: string;
   displayFont: DisplayFont;
+  /** Permanent flag for the hidden typeface; only ever set to true. */
+  monocraftUnlocked: boolean;
   language: Language;
   displayName: string;
   dailyGoal: number;

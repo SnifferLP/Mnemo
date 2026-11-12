@@ -12,8 +12,9 @@ The font files are bundled with the application and work offline.
 | Instrument Sans | Copyright 2022 The Instrument Sans Project Authors | SIL Open Font License 1.1 |
 | Source Sans 3 | Copyright Google Inc. | SIL Open Font License 1.1 |
 | JetBrains Mono | Copyright 2020 The JetBrains Mono Project Authors | SIL Open Font License 1.1 |
+| Monocraft | Copyright (c) 2022 Idrees Hassan ([IdreesInc/Monocraft](https://github.com/IdreesInc/Monocraft)) | SIL Open Font License 1.1 |
 
-The complete SIL Open Font License 1.1 text is in [`licenses/OFL-1.1.txt`](licenses/OFL-1.1.txt). Font projects and their source repositories are listed in the corresponding `@fontsource` package metadata in the dependency tree.
+The complete SIL Open Font License 1.1 text is in [`licenses/OFL-1.1.txt`](licenses/OFL-1.1.txt). Monocraft is redistributed unmodified as published in its upstream release, and its own license file — including the copyright notice — is included verbatim in [`licenses/Monocraft-OFL-1.1.txt`](licenses/Monocraft-OFL-1.1.txt). No Reserved Font Name is declared by the upstream project. Font projects and their source repositories are listed in the corresponding `@fontsource` package metadata in the dependency tree.
 
 ## Runtime dependencies
 

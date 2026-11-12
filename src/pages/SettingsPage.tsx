@@ -30,6 +30,7 @@ import { api } from "@/lib/api";
 import type {
   AiProviderInfo,
   AppInfo,
+  DisplayFont,
   Language,
   ProviderPreset,
   SaveProviderInput,
@@ -78,6 +79,15 @@ const DISPLAY_FONTS = [
     weight: 400,
   },
 ] as const;
+
+// Only offered once the hidden unlock has happened; see lib/monocraft.ts.
+const MONOCRAFT_FONT = {
+  value: "monocraft" as DisplayFont,
+  label: "Monocraft",
+  description: "The monospaced font for developers who like Minecraft a bit too much.",
+  family: "var(--font-monocraft)",
+  weight: 400,
+};
 
 const LANGUAGES = [
   { value: "en", label: "English" },
@@ -601,7 +611,10 @@ export function SettingsPage() {
                 <div className="space-y-2">
                   <Label>{t("Display font")}</Label>
                   <div className="grid grid-cols-2 gap-2">
-                    {DISPLAY_FONTS.map((font) => {
+                    {(settings.monocraftUnlocked
+                      ? [...DISPLAY_FONTS, MONOCRAFT_FONT]
+                      : DISPLAY_FONTS
+                    ).map((font) => {
                       const active = settings.displayFont === font.value;
                       return (
                         <button

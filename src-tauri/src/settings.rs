@@ -11,8 +11,11 @@ pub struct AppSettings {
     /// "dark" | "light" | "system"
     pub theme: String,
     pub accent: String,
-    /// "editorial" | "modern"
+    /// "editorial" | "modern" | "monocraft" (only once unlocked)
     pub display_font: String,
+    /// Permanent flag for the hidden typeface. Set once when the matching
+    /// study set is created and never cleared afterwards.
+    pub monocraft_unlocked: bool,
     /// "en" | "de"
     pub language: String,
     pub display_name: String,
@@ -44,6 +47,7 @@ impl Default for AppSettings {
             theme: "system".into(),
             accent: "blue".into(),
             display_font: "modern".into(),
+            monocraft_unlocked: false,
             language: "en".into(),
             display_name: String::new(),
             daily_goal: 30,
@@ -71,7 +75,9 @@ impl AppSettings {
         if !["dark", "light", "system"].contains(&self.theme.as_str()) {
             self.theme = "dark".into();
         }
-        if !["editorial", "modern"].contains(&self.display_font.as_str()) {
+        if !["editorial", "modern", "monocraft"].contains(&self.display_font.as_str())
+            || (self.display_font == "monocraft" && !self.monocraft_unlocked)
+        {
             self.display_font = "modern".into();
         }
         if !["en", "de"].contains(&self.language.as_str()) {

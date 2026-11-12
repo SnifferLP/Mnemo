@@ -10,6 +10,7 @@ import {
 describe("settings merging", () => {
   it("defaults to the modern sans, English and stable updates", () => {
     expect(DEFAULT_SETTINGS.displayFont).toBe("modern");
+    expect(DEFAULT_SETTINGS.monocraftUnlocked).toBe(false);
     expect(DEFAULT_SETTINGS.language).toBe("en");
     expect(DEFAULT_SETTINGS.updateChannel).toBe("stable");
   });

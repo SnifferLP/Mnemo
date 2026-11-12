@@ -365,6 +365,8 @@ async fn settings_are_sanitised_and_persisted() {
     assert_eq!(defaults.daily_goal, 30);
     // Automatic update checks are opt-out and enabled for new installations.
     assert!(defaults.auto_update_check);
+    // The optional typeface stays unavailable until it is unlocked.
+    assert!(!defaults.monocraft_unlocked);
 
     let custom = AppSettings {
         theme: "neon".into(),
@@ -417,6 +419,31 @@ async fn settings_are_sanitised_and_persisted() {
     let legacy = settings::load(&db.pool).await.expect("legacy reload");
     assert_eq!(legacy.theme, "light");
     assert!(legacy.auto_update_check);
+    assert!(!legacy.monocraft_unlocked);
+
+    // The optional typeface cannot be selected before it has been unlocked.
+    let locked = settings::AppSettings {
+        display_font: "monocraft".into(),
+        ..Default::default()
+    };
+    let sanitised = settings::save(&db.pool, &locked)
+        .await
+        .expect("locked font");
+    assert_eq!(sanitised.display_font, "modern");
+
+    // Once unlocked it persists, together with the selected font.
+    let unlocked = settings::AppSettings {
+        display_font: "monocraft".into(),
+        monocraft_unlocked: true,
+        ..Default::default()
+    };
+    let saved = settings::save(&db.pool, &unlocked)
+        .await
+        .expect("unlocked font");
+    assert_eq!(saved.display_font, "monocraft");
+    let reloaded = settings::load(&db.pool).await.expect("reload font");
+    assert!(reloaded.monocraft_unlocked);
+    assert_eq!(reloaded.display_font, "monocraft");
 
     let mut invalid = loaded;
     invalid.display_font = "comic".into();

@@ -2,6 +2,18 @@
 
 All notable changes to Mnemo are documented here. The project follows [Semantic Versioning](https://semver.org/).
 
+## [1.2.5-rc.4] - 2026-11-12
+
+Fourth release candidate for `1.2.5`. Study sets, progress and review history are untouched.
+
+### Fixed
+
+- **Duplicate detection compares both sides of a card now.** Before, a card was flagged as soon as its term matched another card's term, so “Apple → A fruit” and “Apple → A company” were reported as duplicates. A card is only flagged when its term **and** its definition match an earlier card; a shared term or a shared definition alone is a legitimate pair. Casing and extra whitespace are still normalised first, the amber outline, warning and jump-to-original arrow are unchanged, and unfinished cards (one side still empty) are never flagged.
+
+### Internal
+
+- Duplicate detection now keys on the normalised term/definition pair, with tests covering the full matching matrix (term only, definition only, identical and near-identical cards).
+
 ## [1.2.5-rc.3] - 2026-11-12
 
 Third release candidate for `1.2.5`: nothing is clipped at the bottom of the window any more, the card editor flags duplicate terms while you type, and the German interface uses the wording you asked for. Study sets, progress and review history are untouched.

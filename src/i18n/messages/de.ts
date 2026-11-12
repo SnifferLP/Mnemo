@@ -485,6 +485,8 @@ export const de: Record<string, string> = {
   "What is this set about?": "Worum geht es in diesem Lernset?",
   "Duplicate detected!": "Duplikat erkannt!",
   "Go to original": "Zum Original",
+  "The monospaced font for developers who like Minecraft a bit too much.":
+    "Die Monospace-Schrift für Entwickler, die Minecraft ein bisschen zu sehr mögen.",
   "Card editor": "Karten-Editor",
   "Table": "Tabelle",
   "new card": "neue Karte",

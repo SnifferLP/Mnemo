@@ -1,6 +1,6 @@
 # Maintainer: Mnemo project
 pkgname=mnemo
-pkgver=1.2.5rc.3
+pkgver=1.2.5rc.4
 pkgrel=1
 pkgdesc="Offline-first AI study platform with flashcards, spaced repetition and tests"
 url="https://github.com/SnifferLP/Mnemo"
@@ -37,4 +37,6 @@ package() {
     "$pkgdir/usr/share/licenses/$pkgname/THIRD_PARTY_NOTICES.md"
   install -Dm644 licenses/OFL-1.1.txt \
     "$pkgdir/usr/share/licenses/$pkgname/OFL-1.1.txt"
+  install -Dm644 licenses/Monocraft-OFL-1.1.txt \
+    "$pkgdir/usr/share/licenses/$pkgname/Monocraft-OFL-1.1.txt"
 }

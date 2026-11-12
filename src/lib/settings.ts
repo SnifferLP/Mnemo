@@ -4,6 +4,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   theme: "system",
   accent: "blue",
   displayFont: "modern",
+  monocraftUnlocked: false,
   language: "en",
   displayName: "",
   dailyGoal: 30,

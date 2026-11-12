@@ -52,12 +52,16 @@ export function SetEditorPage() {
   const [flashId, setFlashId] = useState<string | null>(null);
   const flashTimer = useRef<number | null>(null);
 
-  // First card for every saved term. Rows also compare their live draft
-  // against this index, so duplicates are found while typing.
+  // First card for every saved pair (term + definition). Rows also compare
+  // their live draft against this index, so duplicates are found while typing.
   const termIndex = useMemo(
     () =>
       indexTerms(
-        (detail?.cards ?? []).map((item) => ({ id: item.card.id, front: item.card.front })),
+        (detail?.cards ?? []).map((item) => ({
+          id: item.card.id,
+          front: item.card.front,
+          back: item.card.back,
+        })),
       ),
     [detail],
   );

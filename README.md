@@ -264,7 +264,7 @@ cargo clippy --all-targets --all-features -- -D warnings
 cargo test --all-targets
 ```
 
-The current local suite contains **33 Rust unit tests**, **15 Rust integration tests** and **45 frontend tests**. The frontend suite covers learning-round state, activity-chart axis helpers, flashcard option helpers, duplicate-term detection, settings merging, automatic-update defaults, motion preferences, update-channel persistence and translation catalogues. Rust tests cover SM-2 scheduling, answer normalization, import/export, AI request construction, settings sanitization, database migrations, CRUD, document removal, updater channel selection, statistics, persistence, starred terms, archive round trips and upgrade behavior.
+The current local suite contains **33 Rust unit tests**, **15 Rust integration tests** and **56 frontend tests**. The frontend suite covers learning-round state, activity-chart axis helpers, flashcard option helpers, card-duplicate matching, settings merging, automatic-update defaults, motion preferences, update-channel persistence and translation catalogues. Rust tests cover SM-2 scheduling, answer normalization, import/export, AI request construction, settings sanitization, database migrations, CRUD, document removal, updater channel selection, statistics, persistence, starred terms, archive round trips and upgrade behavior.
 
 GitHub Actions also runs the Rust suite on Windows, builds the NSIS installer, builds Linux AppImage/`.deb` bundles and builds the Arch package. A successful compile is not a substitute for manual testing of Windows installation, display scaling, audio playback and other interactive behavior; see [`docs/RELEASING.md`](docs/RELEASING.md) for the manual QA checklist.
 
