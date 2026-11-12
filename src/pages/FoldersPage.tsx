@@ -368,7 +368,7 @@ export function FoldersPage() {
                         className="min-w-0 flex-1 text-left"
                         onClick={() => navigate(`/sets/${set.id}`)}
                       >
-                        <div className="truncate text-[13.5px] font-medium">{set.title}</div>
+                        <div className="break-words text-[13.5px] font-medium">{set.title}</div>
                         <div className="mt-1 flex items-center gap-2 text-[11.5px] text-muted-foreground">
                           <span>{t("{count} cards", { count: set.cardCount })}</span>
                           <span>·</span>

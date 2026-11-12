@@ -2,6 +2,25 @@
 
 All notable changes to Mnemo are documented here. The project follows [Semantic Versioning](https://semver.org/).
 
+## [1.2.5] - 2026-11-12
+
+First stable release of the `1.2.5` line. It collects the four release candidates and adds two layout fixes found during the last one. Existing study sets, progress, review history and settings are kept.
+
+### Highlights
+
+- Motion follows **Settings → Animations** instead of the operating system, which fixes animations disappearing on Windows.
+- The window opens maximized on Windows and Linux.
+- **Settings → Updates → Check for updates automatically** (enabled by default) governs background update checks; manual checks always work.
+- The flashcard preview on set pages is narrower and its heading is gone; the sidebar brand is the logo and “Mnemo” only.
+- Page bottoms are no longer clipped: the shell uses one viewport-tall surface instead of `100vh` arithmetic per page.
+- The card editor flags duplicates while typing, and now only when **both** the term and the definition match.
+- German wording: “Fällig”, “Genauigkeit”, “Anstehende Lernsets:”, “Für heute erledigt!” and the new greeting sentence.
+
+### Fixed
+
+- **Long study set titles wrap instead of being cut off.** Titles in library cards, the dashboard and statistics lists, folder listings and the set header now use the full available width and continue on a second line when needed. Cards only grow when the title is actually that long, so short titles keep the compact layout.
+- **Page headings are no longer truncated.** The shared page header allows a wider heading block and wraps long headings cleanly, which keeps long localized headings and wide typefaces fully readable. The heading size, weight and spacing are unchanged.
+
 ## [1.2.5-rc.4] - 2026-11-12
 
 Fourth release candidate for `1.2.5`. Study sets, progress and review history are untouched.

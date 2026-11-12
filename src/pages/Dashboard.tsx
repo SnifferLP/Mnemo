@@ -381,7 +381,7 @@ export function DashboardPage() {
                     </span>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-baseline justify-between gap-4">
-                        <span className="truncate text-[13px] font-medium transition-colors group-hover:text-primary">
+                        <span className="min-w-0 break-words text-[13px] font-medium transition-colors group-hover:text-primary">
                           {set.title}
                         </span>
                         <span className="shrink-0 text-[10.5px] font-medium text-muted-foreground">
@@ -423,7 +423,7 @@ export function DashboardPage() {
                     className="flex items-center justify-between gap-4 rounded-xl px-3 py-2.5 transition-colors hover:bg-secondary/60"
                   >
                     <div className="min-w-0">
-                      <div className="truncate text-[12.5px] font-medium">
+                      <div className="break-words text-[12.5px] font-medium">
                         {test.setTitle ?? t("Study set")}
                       </div>
                       <div className="mt-0.5 text-[10.5px] text-muted-foreground">

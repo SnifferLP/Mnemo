@@ -18,9 +18,11 @@ export function PageHeader({
 }) {
   return (
     <div className="mb-8 flex flex-wrap items-end justify-between gap-x-8 gap-y-5">
-      <div className="min-w-0 max-w-2xl">
+      <div className="min-w-0 max-w-3xl">
         {eyebrow && <div className="eyebrow mb-2">{eyebrow}</div>}
-        <h1 className="display min-w-0 truncate text-[32px] leading-[1.06] text-foreground sm:text-[36px]">
+        {/* Wraps instead of truncating: wide typefaces and long German
+            headings need a second line rather than an ellipsis. */}
+        <h1 className="display min-w-0 break-words text-[32px] leading-[1.06] text-foreground sm:text-[36px]">
           {title}
         </h1>
         {description && (

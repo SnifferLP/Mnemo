@@ -79,9 +79,13 @@ export function StudySetCard({
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5">
-            {set.isFavorite && <Star className="size-3.5 shrink-0 fill-warning text-warning" />}
-            <h3 className="display truncate text-[18px] leading-tight text-foreground">{set.title}</h3>
+          <div className="flex items-start gap-1.5">
+            {set.isFavorite && <Star className="mt-[3px] size-3.5 shrink-0 fill-warning text-warning" />}
+            {/* Titles wrap over as many lines as they need; the card grows
+                only when the title actually is that long. */}
+            <h3 className="display min-w-0 break-words text-[18px] leading-tight text-foreground">
+              {set.title}
+            </h3>
           </div>
           <p className="mt-2 line-clamp-2 min-h-[34px] text-[12.5px] leading-relaxed text-muted-foreground">
             {set.description || t("No description yet.")}

@@ -303,7 +303,7 @@ export function StatisticsPage() {
                     >
                       <div className="min-w-0 flex-1">
                         <div className="flex items-baseline justify-between gap-3">
-                          <span className="truncate text-[12.5px] font-medium transition-colors group-hover:text-primary">
+                          <span className="min-w-0 break-words text-[12.5px] font-medium transition-colors group-hover:text-primary">
                             {set.title}
                           </span>
                           <span className="shrink-0 text-[10.5px] font-medium text-muted-foreground">

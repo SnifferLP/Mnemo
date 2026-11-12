@@ -295,9 +295,12 @@ export function SetDetailPage() {
 
       <PageHeader
         title={
-          <span className="flex items-center gap-2">
-            {detail.set.title}
-            <button onClick={() => void toggleFavorite()} className="text-muted-foreground transition-colors hover:text-warning">
+          <span className="flex items-start gap-2">
+            <span className="min-w-0 break-words">{detail.set.title}</span>
+            <button
+              onClick={() => void toggleFavorite()}
+              className="mt-1 shrink-0 text-muted-foreground transition-colors hover:text-warning"
+            >
               <Star className={cn("size-5", detail.set.isFavorite && "fill-warning text-warning")} />
             </button>
           </span>
