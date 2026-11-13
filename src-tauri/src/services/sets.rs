@@ -28,10 +28,8 @@ pub async fn list_summaries(
                     AND p.interval_days >= 21 AND p.correct_count >= 2) AS mastered_count,
                 (SELECT COUNT(*) FROM card_progress p WHERE p.set_id = s.id AND p.state <> 'new'
                     AND p.due_at IS NOT NULL AND p.due_at <= ?) AS due_count,
-                (SELECT COUNT(*) FROM card_reviews r WHERE r.set_id = s.id
-                    AND r.hidden_by_reset = 0) AS reviewed_count,
-                (SELECT COUNT(*) FROM card_reviews r WHERE r.set_id = s.id
-                    AND r.hidden_by_reset = 0 AND r.outcome = 'correct') AS correct_count
+                (SELECT COUNT(*) FROM card_reviews r WHERE r.set_id = s.id) AS reviewed_count,
+                (SELECT COUNT(*) FROM card_reviews r WHERE r.set_id = s.id AND r.outcome = 'correct') AS correct_count
          FROM study_sets s
          LEFT JOIN folders f ON f.id = s.folder_id
          WHERE 1 = 1",
@@ -73,6 +71,12 @@ pub async fn list_summaries(
         "title" => "s.title COLLATE NOCASE ASC",
         "created" => "s.created_at DESC",
         "studied" => "s.last_studied_at IS NULL, s.last_studied_at DESC",
+        // Most recently opened first. Sets that were only studied or created
+        // fall back to those timestamps, and the title breaks exact ties so
+        // the order never depends on the row layout of the table.
+        "opened" => {
+            "COALESCE(s.last_opened_at, s.last_studied_at, s.created_at) DESC, s.title COLLATE NOCASE ASC"
+        }
         "cards" => "card_count DESC, s.title COLLATE NOCASE ASC",
         "progress" => "mastered_count DESC, s.title COLLATE NOCASE ASC",
         _ => "s.updated_at DESC",
@@ -135,8 +139,21 @@ pub async fn set_archived(pool: &SqlitePool, id: &str, archived: bool) -> AppRes
     Ok(())
 }
 
+/// Records that a set was opened. Every dashboard set list orders by this
+/// timestamp, so it is persisted instead of living in component state and it
+/// survives navigation and restarts.
+pub async fn mark_opened(pool: &SqlitePool, id: &str) -> AppResult<()> {
+    sqlx::query("UPDATE study_sets SET last_opened_at = ? WHERE id = ?")
+        .bind(now_iso())
+        .bind(id)
+        .execute(pool)
+        .await?;
+    Ok(())
+}
+
 pub async fn detail(pool: &SqlitePool, id: &str) -> AppResult<StudySetDetail> {
     let set = get(pool, id).await?;
+    mark_opened(pool, id).await?;
     let cards = cards::list(pool, id).await?;
 
     let tags: Vec<(String,)> = sqlx::query_as(

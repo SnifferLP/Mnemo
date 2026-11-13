@@ -89,7 +89,10 @@ export function DashboardPage() {
 
   const name = settings.displayName.trim();
   const totals = data?.totals;
-  const nextSet = data?.continueSets[0];
+  // "Continue studying" should target a set that actually has cards due, but
+  // still fall back to the most recently opened set when nothing is due.
+  const nextSet =
+    data?.continueSets.find((set) => set.dueCount > 0) ?? data?.continueSets[0];
   const today = new Date().toLocaleDateString(locale, {
     weekday: "long",
     day: "numeric",
@@ -117,7 +120,7 @@ export function DashboardPage() {
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-2 pb-1">
           <Button variant="outline" onClick={() => navigate("/assistant")}>
-            <Sparkles /> {t("Ask the tutor")}
+            <Sparkles /> {t("Ask AI")}
           </Button>
           <Button onClick={() => navigate("/create")}>
             <Plus /> {t("New study set")}
@@ -187,11 +190,9 @@ export function DashboardPage() {
               />
             ) : (
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                {(data.continueSets.length > 0 ? data.continueSets : data.recentSets)
-                  .slice(0, 3)
-                  .map((set) => (
-                    <StudySetCard key={set.id} set={set} folders={folders} onChanged={load} />
-                  ))}
+                {data.continueSets.map((set) => (
+                  <StudySetCard key={set.id} set={set} folders={folders} onChanged={load} />
+                ))}
               </div>
             )}
           </section>

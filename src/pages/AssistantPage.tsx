@@ -28,7 +28,7 @@ import { Label, Separator } from "@/components/ui/misc";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const MODES = [
-  { value: "tutor", label: "Tutor", hint: "Clear explanations" },
+  { value: "tutor", label: "AI assistant", hint: "Clear explanations" },
   { value: "socratic", label: "Socratic", hint: "Guides with questions" },
   { value: "simplify", label: "Simplify", hint: "Plain language" },
 ];
@@ -146,7 +146,7 @@ export function AssistantPage() {
     } catch (error) {
       setMessages((current) => current.filter((item) => item.id !== optimistic.id));
       setInput(message);
-      toast.error(t("The tutor could not answer"), { description: errorMessage(error) });
+      toast.error(t("The AI assistant could not answer"), { description: errorMessage(error) });
     } finally {
       setSending(false);
     }
@@ -168,7 +168,7 @@ export function AssistantPage() {
       <PageHeader
         title={t("AI study assistant")}
         description={t(
-          "A tutor that works with your own study sets — and never reveals answers too early.",
+          "An AI assistant that works with your own study sets — and never reveals answers too early.",
         )}
         actions={
           <>
@@ -229,7 +229,7 @@ export function AssistantPage() {
                   <h2 className="text-[16px] font-semibold">{t("What are we learning today?")}</h2>
                   <p className="mx-auto mt-1 max-w-sm text-[12.5px] text-muted-foreground">
                     {t(
-                      "Ask about a concept, request an explanation, or let the tutor quiz you on a set.",
+                      "Ask about a concept, request an explanation, or let the AI assistant quiz you on a set.",
                     )}
                   </p>
                 </div>
@@ -346,7 +346,7 @@ export function AssistantPage() {
             </div>
             <p className="mb-3 text-[11px] leading-relaxed text-muted-foreground">
               {t(
-                "Choose what the tutor may read. Everything stays on this machine except the messages you send.",
+                "Choose what the AI assistant may read. Everything stays on this machine except the messages you send.",
               )}
             </p>
 

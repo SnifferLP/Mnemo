@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import { setActiveLanguage, t, translate, tp } from "./core";
+import { de } from "./messages/de";
 
 afterEach(() => setActiveLanguage("en"));
 
@@ -53,6 +54,22 @@ describe("translation catalogue", () => {
         name: "OpenAI",
       }),
     ).toBe("„OpenAI“ entfernen? Der gespeicherte API-Schlüssel wird gelöscht.");
+  });
+
+  it("uses KI terminology instead of Tutor", () => {
+    expect(translate("de", "Ask AI")).toBe("KI fragen");
+    expect(translate("de", "AI assistant:")).toBe("KI-Assistenz:");
+    expect(translate("de", "The AI assistant could not answer")).toBe(
+      "Die KI-Assistenz konnte nicht antworten",
+    );
+    expect(translate("de", "AI assistant")).toBe("KI-Assistenz");
+
+    // Neither the English catalogue keys nor the German values may reintroduce
+    // the old wording on any screen.
+    const tutorKeys = Object.keys(de).filter((key) => /tutor/i.test(key));
+    const tutorValues = Object.entries(de).filter(([, value]) => /tutor/i.test(value));
+    expect(tutorKeys).toEqual([]);
+    expect(tutorValues).toEqual([]);
   });
 
   it("falls back to the English source for unknown keys", () => {

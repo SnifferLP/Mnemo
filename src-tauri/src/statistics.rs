@@ -273,25 +273,15 @@ pub async fn totals(pool: &SqlitePool, daily_goal: i64) -> AppResult<Totals> {
 
 pub async fn dashboard(pool: &SqlitePool, daily_goal: i64) -> AppResult<DashboardData> {
     let totals = totals(pool, daily_goal).await?;
-    let all = sets::list_summaries(pool, None, None, None, false, false, "studied").await?;
+    // Both set lists on the dashboard order by the same durable timestamp, so
+    // the set opened last is always first, also after a restart.
+    let all = sets::list_summaries(pool, None, None, None, false, false, "opened").await?;
 
-    let mut recent: Vec<StudySetSummary> = all
-        .iter()
-        .filter(|s| s.last_studied_at.is_some())
-        .take(6)
-        .cloned()
-        .collect();
-    if recent.is_empty() {
-        recent = all.iter().take(6).cloned().collect();
-    }
+    let recent: Vec<StudySetSummary> = all.iter().take(6).cloned().collect();
 
-    let mut continue_sets: Vec<StudySetSummary> = all
-        .iter()
-        .filter(|s| s.due_count > 0 && s.card_count > 0)
-        .cloned()
-        .collect();
-    continue_sets.sort_by_key(|a| std::cmp::Reverse(a.due_count));
-    continue_sets.truncate(4);
+    // Every active set belongs here, not only the ones with cards due: a set
+    // used to vanish from this section as soon as nothing was due in it.
+    let continue_sets: Vec<StudySetSummary> = all.clone();
 
     let favorites: Vec<StudySetSummary> = all
         .iter()
@@ -394,12 +384,9 @@ pub async fn statistics(
                 (SELECT COUNT(*) FROM flashcards f WHERE f.set_id = s.id) AS cards,
                 (SELECT COUNT(*) FROM card_progress p WHERE p.set_id = s.id AND p.interval_days >= 21 AND p.correct_count >= 2) AS mastered,
                 (SELECT COUNT(*) FROM card_progress p WHERE p.set_id = s.id AND p.state <> 'new' AND p.due_at IS NOT NULL AND p.due_at <= ?1) AS due,
-                (SELECT COUNT(*) FROM card_reviews r WHERE r.set_id = s.id AND r.created_at >= ?2
-                    AND r.hidden_by_reset = 0) AS reviews,
-                (SELECT COUNT(*) FROM card_reviews r WHERE r.set_id = s.id AND r.created_at >= ?2
-                    AND r.hidden_by_reset = 0 AND r.outcome = 'correct') AS correct,
-                (SELECT COALESCE(SUM(ss.duration_seconds), 0) FROM study_sessions ss WHERE ss.set_id = s.id
-                    AND ss.started_at >= ?2 AND ss.hidden_by_reset = 0) AS seconds
+                (SELECT COUNT(*) FROM card_reviews r WHERE r.set_id = s.id AND r.created_at >= ?2) AS reviews,
+                (SELECT COUNT(*) FROM card_reviews r WHERE r.set_id = s.id AND r.created_at >= ?2 AND r.outcome = 'correct') AS correct,
+                (SELECT COALESCE(SUM(ss.duration_seconds), 0) FROM study_sessions ss WHERE ss.set_id = s.id AND ss.started_at >= ?2) AS seconds
          FROM study_sets s
          WHERE s.archived_at IS NULL
          ORDER BY reviews DESC, s.title COLLATE NOCASE",
@@ -522,18 +509,19 @@ pub async fn set_statistics(
     .fetch_one(pool)
     .await?;
 
-    // Rows the set reset earlier stay in the database for the global statistics,
-    // but they no longer count as progress of this set.
+    // Reviews and sessions are history: a reset clears what the cards are due
+    // for next, not what was learnt before, so the "Last 30 Days" chart and the
+    // set's review history stay readable after a reset. Only test results are
+    // reset-scoped.
     let review_row: (i64, i64) = sqlx::query_as(
         "SELECT COUNT(*), COALESCE(SUM(CASE WHEN outcome='correct' THEN 1 ELSE 0 END),0)
-         FROM card_reviews WHERE set_id = ? AND hidden_by_reset = 0",
+         FROM card_reviews WHERE set_id = ?",
     )
     .bind(set_id)
     .fetch_one(pool)
     .await?;
     let seconds: i64 = sqlx::query_scalar(
-        "SELECT COALESCE(SUM(duration_seconds), 0) FROM study_sessions
-         WHERE set_id = ? AND hidden_by_reset = 0",
+        "SELECT COALESCE(SUM(duration_seconds), 0) FROM study_sessions WHERE set_id = ?",
     )
     .bind(set_id)
     .fetch_one(pool)
@@ -546,7 +534,7 @@ pub async fn set_statistics(
         "SELECT {} AS day, COUNT(*),
                 SUM(CASE WHEN outcome='correct' THEN 1 ELSE 0 END),
                 COUNT(DISTINCT card_id)
-         FROM card_reviews WHERE set_id = ? AND hidden_by_reset = 0 AND {} >= ?
+         FROM card_reviews WHERE set_id = ? AND {} >= ?
          GROUP BY day ORDER BY day",
         local_day_expr("created_at"),
         local_day_expr("created_at")
@@ -558,7 +546,7 @@ pub async fn set_statistics(
 
     let session_rows: Vec<(String, i64)> = sqlx::query_as(&format!(
         "SELECT {} AS day, COALESCE(SUM(duration_seconds),0)
-         FROM study_sessions WHERE set_id = ? AND hidden_by_reset = 0 AND {} >= ? GROUP BY day",
+         FROM study_sessions WHERE set_id = ? AND {} >= ? GROUP BY day",
         local_day_expr("started_at"),
         local_day_expr("started_at")
     ))

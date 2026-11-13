@@ -761,7 +761,7 @@ export function StudySessionPage() {
                 )}
                 {feedback.aiFeedback && (
                   <div className="rounded-lg bg-primary-soft p-3 text-[12.5px]">
-                    <span className="font-medium text-primary">{t("AI tutor:")} </span>
+                    <span className="font-medium text-primary">{t("AI assistant:")} </span>
                     {feedback.aiFeedback}
                   </div>
                 )}
