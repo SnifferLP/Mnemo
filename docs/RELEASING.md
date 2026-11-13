@@ -251,7 +251,94 @@ On Windows x64 and Linux x86_64 AppImage builds, verify at least:
 - A deliberately invalid signature, missing asset or download failure leaves the current installation usable and shows an error.
 - Package-managed `.deb` and Arch builds report that automatic updates are handled by the package manager.
 
-## 7. Publish checks
+## 7. winget publishing (automatic)
+
+The package `SnifferLP.Mnemo` is published to Microsoft's Windows Package Manager repository (`microsoft/winget-pkgs`). `.github/workflows/winget-release.yml` keeps it up to date; no manual step is needed for a normal release.
+
+The identifier is `SnifferLP.Mnemo`. Its `Publisher` field stays `The Mnemo Authors`, which is what the application and the installer report; the identifier prefix does not have to match the publisher name. The first submission started as `TheMnemoAuthors.Mnemo` and was renamed in the same pull request before being merged, so only one package identifier ever exists.
+
+### How it works
+
+1. Publishing a GitHub Release starts the workflow. Drafts never emit the event, and both events and manual runs are rejected unless the release is stable — a tag such as `v1.2.6-rc.1` is refused.
+2. The tag must equal `package.json`'s version at that tag and must be a plain `X.Y.Z` version, otherwise the run fails before anything is downloaded.
+3. The workflow refuses to continue when the version is already in `winget-pkgs` (nothing happens, the run is green with a summary notice), when an open `winget-pkgs` pull request already mentions it, or when the version is not newer than the newest published one.
+4. It waits up to 45 minutes for `Mnemo_<version>_x64-setup.exe` to be attached to the release, because the release workflow builds the installer after the release is published.
+5. It downloads the installer, computes its SHA-256 and cross-checks it against the release's `SHA256SUMS` asset. A mismatch is fatal.
+6. It installs a pinned `wingetcreate` (`1.28.1.0`) and verifies the download's SHA-256.
+7. `wingetcreate update SnifferLP.Mnemo` rewrites only the installer URL, hash, version, release date and release-notes URL of the existing package, so publisher, license, tags, `InstallerType: nullsoft`, `Scope: user` and the `Silent: /S` switch from the first submission are preserved. The workflow then asserts every one of those fields is present in the output.
+8. `winget validate --manifest <dir>` validates the files; `wingetcreate submit` validates them again with the same engine and opens the pull request.
+9. The run fails if no pull request URL is reported or if the pull request is not open afterwards. A failure also writes a `FAILED` section to the run summary, so a broken run is never summarized as a success.
+
+Pull requests are titled `Update: SnifferLP.Mnemo to <version>`; the first submission used `New package: … version 1.2.5`.
+
+The initial submission (PR #479558) must be merged before the automation can update the package: `wingetcreate update` reads the existing manifest from `winget-pkgs` and the workflow stops with an explicit error while the package is unknown there.
+
+### Required secret
+
+| Secret | Contents |
+| --- | --- |
+| `WINGET_GITHUB_TOKEN` | A **classic** GitHub personal access token belonging to the account that owns the fork, with the `public_repo` scope. The optional `delete_repo` scope lets wingetcreate remove a fork it created when submission fails. |
+
+Fine-grained tokens are not supported by wingetcreate. Create the token at **Settings → Developer settings → Personal access tokens (classic)**, then add it under **Settings → Secrets and variables → Actions**. The workflow passes it to `wingetcreate` through the `WINGET_CREATE_GITHUB_TOKEN` environment variable, never as a command-line argument. Only the manifest-generation and submission steps receive it; the generation step needs it so the `winget-pkgs` lookups are authenticated instead of sharing the anonymous 60-requests-per-hour limit of hosted runner IPs. A dry run still works when the secret is absent.
+
+No other secret is needed. The workflow itself runs with `permissions: contents: read` and uses the default `GITHUB_TOKEN` only to read the release and query `winget-pkgs`.
+
+### Testing the workflow without releasing
+
+`workflow_dispatch` accepts an existing stable tag and a `dry_run` input that defaults to `true`:
+
+```bash
+# Generate and validate the manifests, upload them as an artifact, open no PR
+gh workflow run winget-release.yml --ref main -f tag=v1.2.5 -f dry_run=true
+
+# Same pipeline with submission enabled (only for a version that is not published yet)
+gh workflow run winget-release.yml --ref main -f tag=v1.2.6 -f dry_run=false
+```
+
+A dry run on an already published version regenerates and revalidates it; that is the way to exercise the whole pipeline without touching `winget-pkgs`.
+
+### Troubleshooting
+
+| Summary / error | Meaning and action |
+| --- | --- |
+| `already published` | The version is already in `winget-pkgs`. Nothing to do; no PR was opened. |
+| `pull request already open` | An open PR already covers this version. Wait for it to be merged instead of opening another. |
+| `is marked as a pre-release` / `is a draft` | Only stable releases are mirrored. Publish the stable release without the pre-release flag. |
+| `package.json at … declares version …` | The tag and the committed version disagree. Fix the version commit and re-tag. |
+| `is not newer than the latest published` | The release is older than what `winget-pkgs` already has; nothing is submitted. |
+| `Installer … did not appear … within 45 minutes` | The release workflow did not attach the NSIS installer. Re-run `release.yml` for that tag, then re-run this workflow. |
+| `SHA256 mismatch` | The published asset and `SHA256SUMS` disagree; treat the release as broken and rebuild it. |
+| `WINGET_GITHUB_TOKEN is not set` | Add the repository secret described above. |
+| `wingetcreate update failed … after 3 attempt(s)` | The tool retries transient failures twice (20 s apart) before failing. Read the printed log: a rate limit means the token is missing or exhausted, a missing package means the initial submission is not merged yet, and a manifest error needs a field fix. |
+| `wingetcreate submit failed` | Read the log in the run output. Validation errors are usually a field problem in the manifest; see the [validation failure guide](https://github.com/microsoft/winget-pkgs/blob/master/doc/ValidationFailureGuide.md). |
+| `winget CLI unavailable` | The runner image lost the App Installer MSIX. Validation still runs inside `wingetcreate`, and the summary records that `winget validate` was skipped. |
+
+Microsoft's own validation pipeline runs on the pull request afterwards. A red check there blocks merging and needs a manifest fix, not an app change.
+
+### Manual fallback
+
+If automation fails and a release still needs to reach winget, run the same steps by hand on Windows:
+
+```powershell
+$env:WINGET_CREATE_GITHUB_TOKEN = '<classic PAT with public_repo>'
+$version = '1.2.6'
+$url = "https://github.com/SnifferLP/Mnemo/releases/download/v$version/Mnemo_${version}_x64-setup.exe"
+
+wingetcreate update SnifferLP.Mnemo `
+  --urls $url `
+  --version $version `
+  --release-date 2026-11-20 `
+  --release-notes-url "https://github.com/SnifferLP/Mnemo/releases/tag/v$version" `
+  --out manifests `
+  --no-open
+
+winget validate --manifest manifests\SnifferLP\Mnemo\$version
+wingetcreate submit --prtitle "Update: SnifferLP.Mnemo to $version" --no-open manifests\SnifferLP\Mnemo\$version
+```
+
+The workflow uploads every generated manifest as the `winget-manifests-<version>` artifact, so a failed run can be inspected and resubmitted without regenerating anything.
+
+## 8. Publish checks
 
 - Confirm the release assets download and install.
 - Confirm the source archive matches the recorded checksum.
