@@ -1,0 +1,454 @@
+name: winget
+
+# Mirrors every stable GitHub Release into microsoft/winget-pkgs with Microsoft's
+# official wingetcreate tool. Pre-releases, drafts and release candidates are
+# rejected. See docs/RELEASING.md for the required secret, the manual fallback
+# and troubleshooting.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing stable release tag to mirror, for example v1.2.5
+        required: true
+        type: string
+      dry_run:
+        description: Only generate and validate manifests; never open a pull request
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: winget-${{ github.event.release.tag_name || inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    name: Resolve release and check winget state
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    # A draft never emits `published`, and a pre-release must never reach winget.
+    # Both are checked again against the API below, because a manual dispatch can
+    # point at any tag.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.release.prerelease == false && github.event.release.draft == false)
+    env:
+      PACKAGE_ID: SnifferLP.Mnemo
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      EVENT_TAG: ${{ github.event.release.tag_name }}
+      INPUT_TAG: ${{ inputs.tag }}
+      DRY_RUN: ${{ inputs.dry_run }}
+    outputs:
+      should_run: ${{ steps.state.outputs.should_run }}
+      version: ${{ steps.release.outputs.version }}
+      tag: ${{ steps.release.outputs.tag }}
+      release_url: ${{ steps.release.outputs.release_url }}
+      release_date: ${{ steps.release.outputs.release_date }}
+      asset_name: ${{ steps.release.outputs.asset_name }}
+    steps:
+      - name: Resolve the target release
+        id: release
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $tag = if ($env:INPUT_TAG) { $env:INPUT_TAG } else { $env:EVENT_TAG }
+          if (-not $tag) {
+            throw 'No release tag: pass the tag input when running this workflow manually.'
+          }
+
+          $release = gh release view $tag --json tagName,isDraft,isPrerelease,publishedAt,url | ConvertFrom-Json
+          if ($release.isDraft) {
+            throw "Release $tag is a draft. Drafts and pre-releases are never published to winget."
+          }
+          if ($release.isPrerelease) {
+            throw "Release $tag is marked as a pre-release. Only stable releases are published to winget."
+          }
+
+          $version = $tag -replace '^[vV]', ''
+          if ($version -notmatch '^\d+\.\d+\.\d+$') {
+            throw "Tag $tag does not resolve to a stable semantic version (got '$version')."
+          }
+
+          # Tag, package.json at the tag and the installer file name must agree.
+          $packageJson = gh api "repos/$env:GH_REPO/contents/package.json?ref=$tag" | ConvertFrom-Json
+          $decoded = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($packageJson.content))
+          $declaredVersion = ($decoded | ConvertFrom-Json).version
+          if ($declaredVersion -ne $version) {
+            throw "package.json at $tag declares version $declaredVersion, but the tag is $tag."
+          }
+
+          $assetName = "Mnemo_${version}_x64-setup.exe"
+          $releaseDate = ([datetime]$release.publishedAt).ToString('yyyy-MM-dd')
+
+          "VERSION=$version" | Add-Content -Path $env:GITHUB_ENV
+          "TAG=$tag" | Add-Content -Path $env:GITHUB_ENV
+          "RELEASE_URL=$($release.url)" | Add-Content -Path $env:GITHUB_ENV
+          "RELEASE_DATE=$releaseDate" | Add-Content -Path $env:GITHUB_ENV
+          "ASSET_NAME=$assetName" | Add-Content -Path $env:GITHUB_ENV
+
+          "version=$version" | Add-Content -Path $env:GITHUB_OUTPUT
+          "tag=$tag" | Add-Content -Path $env:GITHUB_OUTPUT
+          "release_url=$($release.url)" | Add-Content -Path $env:GITHUB_OUTPUT
+          "release_date=$releaseDate" | Add-Content -Path $env:GITHUB_OUTPUT
+          "asset_name=$assetName" | Add-Content -Path $env:GITHUB_OUTPUT
+          Write-Host "Resolved $($env:PACKAGE_ID) $version from $tag (installer $assetName)."
+
+      - name: Check winget-pkgs for this package and version
+        id: state
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $parts = $env:PACKAGE_ID.Split('.', 2)
+          $publisher = $parts[0]
+          $app = $parts[1]
+          $path = "manifests/$($publisher.Substring(0, 1).ToLowerInvariant())/$publisher/$app"
+
+          # A failed gh call is not a PowerShell exception, so the exit code is
+          # checked explicitly: a missing package must stop the run, not be read
+          # as "no versions yet".
+          $listing = gh api "repos/microsoft/winget-pkgs/contents/$path" --jq '.[] | select(.type == "dir") | .name' 2>$null
+          if ($LASTEXITCODE -ne 0) {
+            throw "Package $($env:PACKAGE_ID) is not in microsoft/winget-pkgs yet ($path), or the contents API call failed. Merge the initial manifest pull request before this workflow can update it."
+          }
+          $existing = @($listing | Where-Object { $_ })
+
+          $alreadyPublished = $existing -contains $env:VERSION
+          if ($alreadyPublished -and $env:DRY_RUN -ne 'true') {
+            "should_run=false" | Add-Content -Path $env:GITHUB_OUTPUT
+            @(
+              '### winget automation: already published'
+              ''
+              "Version ``$($env:VERSION)`` of ``$($env:PACKAGE_ID)`` is already in microsoft/winget-pkgs. No pull request was opened."
+            ) | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+            exit 0
+          }
+
+          $numeric = $existing | Where-Object { $_ -match '^\d+(\.\d+){1,3}$' }
+          $latest = $numeric | Sort-Object { [version]$_ } | Select-Object -Last 1
+          if ($alreadyPublished) {
+            Write-Host "Version $($env:VERSION) is already published; this dry run only regenerates and validates it."
+          }
+          elseif ($latest -and ([version]$env:VERSION -le [version]$latest)) {
+            throw "Version $($env:VERSION) is not newer than the latest published winget version $latest; refusing to submit."
+          }
+
+          $query = "repo:microsoft/winget-pkgs is:pr is:open in:title `"$($env:PACKAGE_ID)`""
+          $openTitles = @(gh api -X GET search/issues -f q=$query --jq '.items[].title' 2>$null)
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Could not query open microsoft/winget-pkgs pull requests; refusing to guess whether this version is already pending.'
+          }
+          $duplicate = $openTitles | Where-Object { $_ -like "*$($env:VERSION)*" } | Select-Object -First 1
+          if ($duplicate) {
+            if ($env:DRY_RUN -eq 'true') {
+              Write-Host "An open pull request already mentions $($env:VERSION): $duplicate"
+            }
+            else {
+              "should_run=false" | Add-Content -Path $env:GITHUB_OUTPUT
+              @(
+                '### winget automation: pull request already open'
+                ''
+                "An open pull request already covers ``$($env:PACKAGE_ID)`` $($env:VERSION): $duplicate"
+              ) | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+              exit 0
+            }
+          }
+
+          "should_run=true" | Add-Content -Path $env:GITHUB_OUTPUT
+          $newest = if ($latest) { $latest } else { 'none' }
+          Write-Host "Latest published version: $newest. Proceeding with $($env:VERSION)."
+
+  publish:
+    name: Generate manifests and submit pull request
+    needs: preflight
+    if: needs.preflight.outputs.should_run == 'true'
+    runs-on: windows-latest
+    timeout-minutes: 60
+    env:
+      PACKAGE_ID: SnifferLP.Mnemo
+      VERSION: ${{ needs.preflight.outputs.version }}
+      TAG: ${{ needs.preflight.outputs.tag }}
+      RELEASE_URL: ${{ needs.preflight.outputs.release_url }}
+      RELEASE_DATE: ${{ needs.preflight.outputs.release_date }}
+      ASSET_NAME: ${{ needs.preflight.outputs.asset_name }}
+      DRY_RUN: ${{ inputs.dry_run }}
+      WINGETCREATE_VERSION: "1.28.1.0"
+      WINGETCREATE_SHA256: "63d980ba79e97042395bd6eb5992c2db9e01e9e7a8a22958a95c288f27310413"
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Wait for the Windows installer asset
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          # The release workflow publishes the installer after the release event
+          # fires, so the asset can be missing for a while. Poll instead of
+          # failing immediately, and fail loudly once the deadline passes.
+          $deadline = (Get-Date).AddMinutes(45)
+          $asset = $null
+          while ((Get-Date) -lt $deadline) {
+            $asset = $null
+            $raw = gh release view $env:TAG --json assets 2>$null
+            if ($LASTEXITCODE -ne 0 -or -not $raw) {
+              Write-Host "Release $($env:TAG) is not readable yet."
+            }
+            else {
+              try {
+                $assets = ($raw | ConvertFrom-Json).assets
+                $asset = $assets | Where-Object { $_.name -eq $env:ASSET_NAME -and $_.size -gt 0 } | Select-Object -First 1
+              }
+              catch {
+                Write-Host "Release $($env:TAG) metadata is not usable yet: $($_.Exception.Message)"
+              }
+            }
+            if ($asset) { break }
+            Write-Host "Installer $($env:ASSET_NAME) is not attached yet; retrying in 60 seconds."
+            Start-Sleep -Seconds 60
+          }
+          if (-not $asset) {
+            throw "Installer $($env:ASSET_NAME) did not appear on release $($env:TAG) within 45 minutes."
+          }
+          Write-Host "Found $($asset.name) ($($asset.size) bytes): $($asset.url)"
+          "INSTALLER_URL=$($asset.url)" | Add-Content -Path $env:GITHUB_ENV
+
+      - name: Download and verify the installer
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          gh release download $env:TAG --pattern $env:ASSET_NAME --dir dist --clobber
+          if ($LASTEXITCODE -ne 0) { throw "Could not download $($env:ASSET_NAME)." }
+
+          $installer = Join-Path 'dist' $env:ASSET_NAME
+          $hash = (Get-FileHash -Path $installer -Algorithm SHA256).Hash.ToUpperInvariant()
+          Write-Host "SHA256 of $($env:ASSET_NAME): $hash"
+
+          gh release download $env:TAG --pattern SHA256SUMS --dir dist --clobber 2>$null
+          $sums = if (Test-Path 'dist/SHA256SUMS') { Get-Content 'dist/SHA256SUMS' } else { $null }
+          if (-not $sums) {
+            Write-Warning 'SHA256SUMS is not attached to this release; relying on the hash computed from the GitHub-hosted asset.'
+          }
+          else {
+            $entry = $sums | Where-Object { $_ -match "\s$([regex]::Escape($env:ASSET_NAME))$" } | Select-Object -First 1
+            if (-not $entry) {
+              Write-Warning "SHA256SUMS has no entry for $($env:ASSET_NAME)."
+            }
+            else {
+              $expected = ($entry -split '\s+')[0].ToUpperInvariant()
+              if ($expected -ne $hash) {
+                throw "SHA256 mismatch for $($env:ASSET_NAME): computed $hash, SHA256SUMS says $expected."
+              }
+              Write-Host 'SHA256SUMS matches the computed hash.'
+            }
+          }
+          "SHA256=$hash" | Add-Content -Path $env:GITHUB_ENV
+
+      - name: Install pinned wingetcreate
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $dir = Join-Path $env:RUNNER_TEMP 'wingetcreate'
+          New-Item -ItemType Directory -Force -Path $dir | Out-Null
+          $exe = Join-Path $dir 'wingetcreate.exe'
+          $url = "https://github.com/microsoft/winget-create/releases/download/v$($env:WINGETCREATE_VERSION)/wingetcreate.exe"
+          Invoke-WebRequest -Uri $url -OutFile $exe -UseBasicParsing
+          $actual = (Get-FileHash -Path $exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actual -ne $env:WINGETCREATE_SHA256) {
+            throw "wingetcreate $($env:WINGETCREATE_VERSION) SHA256 mismatch: got $actual."
+          }
+          Write-Host "wingetcreate $($env:WINGETCREATE_VERSION) verified."
+          "WINGETCREATE_DIR=$dir" | Add-Content -Path $env:GITHUB_ENV
+          $dir | Add-Content -Path $env:GITHUB_PATH
+          & $exe --version
+
+      - name: Generate updated manifests
+        shell: pwsh
+        env:
+          # wingetcreate reads its token from this variable only; it is never a
+          # command-line argument. Supplying it here keeps the lookups of the
+          # existing manifest and the repository metadata authenticated instead
+          # of relying on the shared anonymous rate limit (60 requests/hour per
+          # IP, and hosted runners share IPs). A dry run works without it.
+          WINGET_CREATE_GITHUB_TOKEN: ${{ secrets.WINGET_GITHUB_TOKEN }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $log = Join-Path $env:RUNNER_TEMP 'wingetcreate-update.log'
+          # wingetcreate reads an existing package from winget-pkgs and updates
+          # only the installer URL, hash, version, release date and notes URL, so
+          # publisher, license, tags and switches from 1.2.5 are preserved.
+          # GITHUB_PATH only applies to later steps, so the binary is addressed
+          # directly here instead of relying on PATH.
+          $wingetcreate = if ($env:WINGETCREATE_DIR) { Join-Path $env:WINGETCREATE_DIR 'wingetcreate.exe' } else { 'wingetcreate' }
+          $attempt = 0
+          do {
+            $attempt++
+            & $wingetcreate update $env:PACKAGE_ID `
+                --urls $env:INSTALLER_URL `
+                --version $env:VERSION `
+                --release-date $env:RELEASE_DATE `
+                --release-notes-url $env:RELEASE_URL `
+                --out manifests *> $log
+            $code = $LASTEXITCODE
+            if ($code -eq 0) { break }
+            if ($attempt -lt 3) {
+              Write-Warning "wingetcreate update failed with exit code $code; retrying in 20 seconds (attempt $attempt of 3)."
+              Start-Sleep -Seconds 20
+            }
+          } while ($attempt -lt 3)
+          Get-Content $log | Write-Host
+          if ($code -ne 0) {
+            throw "wingetcreate update failed with exit code $code after $attempt attempt(s). If the log mentions a rate limit or a missing package, see docs/RELEASING.md."
+          }
+
+          $installerFile = Get-ChildItem -Path manifests -Recurse -File -Filter "$($env:PACKAGE_ID).installer.yaml" | Select-Object -First 1
+          if (-not $installerFile) { throw "wingetcreate did not write $($env:PACKAGE_ID).installer.yaml." }
+          "MANIFEST_DIR=$($installerFile.Directory.FullName)" | Add-Content -Path $env:GITHUB_ENV
+          Get-ChildItem -Path $installerFile.Directory.FullName -File | ForEach-Object { Write-Host $_.FullName }
+
+      - name: Verify the generated manifests
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $dir = $env:MANIFEST_DIR
+          $files = @(Get-ChildItem -Path $dir -File)
+          if ($files.Count -ne 3) {
+            throw "Expected three manifest files in $dir, found $($files.Count)."
+          }
+
+          $installer = Get-Content (Join-Path $dir "$($env:PACKAGE_ID).installer.yaml") -Raw
+          $versionManifest = Get-Content (Join-Path $dir "$($env:PACKAGE_ID).yaml") -Raw
+          $locale = Get-Content (Join-Path $dir "$($env:PACKAGE_ID).locale.en-US.yaml") -Raw
+
+          $checks = @(
+            @{ Name = 'package identifier'; Text = $versionManifest; Pattern = "^PackageIdentifier: $([regex]::Escape($env:PACKAGE_ID))$" },
+            @{ Name = 'version manifest version'; Text = $versionManifest; Pattern = "^PackageVersion: $([regex]::Escape($env:VERSION))$" },
+            @{ Name = 'installer version'; Text = $installer; Pattern = "^PackageVersion: $([regex]::Escape($env:VERSION))$" },
+            @{ Name = 'installer url'; Text = $installer; Pattern = "^  InstallerUrl: $([regex]::Escape($env:INSTALLER_URL))$" },
+            @{ Name = 'installer hash'; Text = $installer; Pattern = "^  InstallerSha256: $($env:SHA256)$" },
+            @{ Name = 'installer architecture'; Text = $installer; Pattern = '^\s*-?\s*Architecture: x64$' },
+            @{ Name = 'installer type'; Text = $installer; Pattern = '^InstallerType: nullsoft$' },
+            @{ Name = 'installer scope'; Text = $installer; Pattern = '^Scope: user$' },
+            @{ Name = 'silent switch'; Text = $installer; Pattern = '^  Silent: /S$' },
+            @{ Name = 'publisher'; Text = $locale; Pattern = '^Publisher: The Mnemo Authors$' },
+            @{ Name = 'publisher url'; Text = $locale; Pattern = '^PublisherUrl: https://github\.com/SnifferLP/Mnemo$' },
+            @{ Name = 'package url'; Text = $locale; Pattern = '^PackageUrl: https://github\.com/SnifferLP/Mnemo$' },
+            @{ Name = 'license'; Text = $locale; Pattern = '^License: MIT$' },
+            @{ Name = 'locale version'; Text = $locale; Pattern = "^PackageVersion: $([regex]::Escape($env:VERSION))$" }
+          )
+          foreach ($check in $checks) {
+            if ($check.Text -notmatch "(?m)$($check.Pattern)") {
+              throw "Generated manifest does not contain the expected $($check.Name)."
+            }
+          }
+          if ($installer -match '(?m)^\s*-?\s*Architecture: (x86|arm|arm64|neutral)$') {
+            throw 'Generated manifest declares an architecture other than x64.'
+          }
+          Write-Host 'Generated manifests contain the expected version, hash, installer type, scope and metadata.'
+
+      - name: Validate manifests with winget
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
+            # winget is provided by the App Installer MSIX and is occasionally
+            # missing for the non-interactive runner account. wingetcreate
+            # validates the same files with the same WinGetUtil engine during
+            # submit, so validation still happens; record the gap explicitly.
+            $result = 'winget CLI unavailable on this runner; wingetcreate validates with WinGetUtil during submit'
+            Write-Warning $result
+            "VALIDATION=$result" | Add-Content -Path $env:GITHUB_ENV
+            exit 0
+          }
+          $log = Join-Path $env:RUNNER_TEMP 'winget-validate.log'
+          winget validate --manifest $env:MANIFEST_DIR --disable-interactivity *> $log
+          $code = $LASTEXITCODE
+          Get-Content $log | Write-Host
+          if ($code -ne 0) { throw "winget validate failed with exit code $code." }
+          "VALIDATION=winget validate passed" | Add-Content -Path $env:GITHUB_ENV
+
+      - name: Upload generated manifests
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: winget-manifests-${{ needs.preflight.outputs.version }}
+          if-no-files-found: ignore
+          path: manifests/**
+
+      - name: Submit pull request
+        if: env.DRY_RUN != 'true'
+        shell: pwsh
+        env:
+          # Classic personal access token with the public_repo scope. The tool
+          # reads it from this environment variable, so it never appears in a
+          # command line.
+          WINGET_CREATE_GITHUB_TOKEN: ${{ secrets.WINGET_GITHUB_TOKEN }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if (-not $env:WINGET_CREATE_GITHUB_TOKEN) {
+            throw 'Repository secret WINGET_GITHUB_TOKEN is not set. See docs/RELEASING.md.'
+          }
+          $log = Join-Path $env:RUNNER_TEMP 'wingetcreate-submit.log'
+          $wingetcreate = if ($env:WINGETCREATE_DIR) { Join-Path $env:WINGETCREATE_DIR 'wingetcreate.exe' } else { 'wingetcreate' }
+          & $wingetcreate submit --prtitle "Update: $($env:PACKAGE_ID) to $($env:VERSION)" --no-open $env:MANIFEST_DIR *> $log
+          $code = $LASTEXITCODE
+          Get-Content $log | Write-Host
+          if ($code -ne 0) { throw "wingetcreate submit failed with exit code $code." }
+
+          $text = Get-Content $log -Raw
+          $match = [regex]::Match($text, 'https://github\.com/microsoft/winget-pkgs/pull/(\d+)')
+          if (-not $match.Success) {
+            throw 'wingetcreate did not report a pull request URL.'
+          }
+          "PR_URL=$($match.Value)" | Add-Content -Path $env:GITHUB_ENV
+          "PR_NUMBER=$($match.Groups[1].Value)" | Add-Content -Path $env:GITHUB_ENV
+
+      - name: Verify the pull request is open
+        if: env.DRY_RUN != 'true'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $raw = gh api "repos/microsoft/winget-pkgs/pulls/$($env:PR_NUMBER)"
+          if ($LASTEXITCODE -ne 0) { throw "Could not read pull request #$($env:PR_NUMBER)." }
+          $pr = $raw | ConvertFrom-Json
+          if ($pr.state -ne 'open') {
+            throw "Pull request #$($env:PR_NUMBER) is in state '$($pr.state)'."
+          }
+          Write-Host "Pull request #$($env:PR_NUMBER) is open: $($pr.html_url)"
+
+      - name: Write summary
+        if: success()
+        shell: pwsh
+        run: |
+          $mode = if ($env:DRY_RUN -eq 'true') { 'dry run - no pull request opened' } else { 'submitted' }
+          $lines = @(
+            "### winget: $($env:PACKAGE_ID) $($env:VERSION) ($mode)"
+            ''
+            '| Field | Value |'
+            '| --- | --- |'
+            "| Release | $($env:TAG) |"
+            "| Installer | $($env:ASSET_NAME) |"
+            "| Installer URL | $($env:INSTALLER_URL) |"
+            "| SHA256 | $($env:SHA256) |"
+            "| Validation | $($env:VALIDATION) |"
+            "| Pull request | $($env:PR_URL) |"
+            ''
+            "Release notes: $($env:RELEASE_URL)"
+          )
+          $lines | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+
+      - name: Report failure
+        if: failure()
+        shell: pwsh
+        run: |
+          @(
+            "### winget: FAILED for $($env:PACKAGE_ID) $($env:VERSION)"
+            ''
+            'No pull request was confirmed open. Check the failing step above, then'
+            'follow the manual fallback in docs/RELEASING.md.'
+          ) | Add-Content -Path $env:GITHUB_STEP_SUMMARY
