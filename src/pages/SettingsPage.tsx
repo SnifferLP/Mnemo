@@ -1070,7 +1070,7 @@ export function SettingsPage() {
                   {
                     key: "aiShareHistory" as const,
                     label: t("Share chat history"),
-                    hint: t("Let the tutor follow the conversation"),
+                    hint: t("Let the AI assistant follow the conversation"),
                     value: settings.aiShareHistory,
                   },
                 ].map((row) => (

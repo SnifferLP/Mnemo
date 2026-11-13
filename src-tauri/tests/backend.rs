@@ -1248,7 +1248,8 @@ async fn resetting_one_set_keeps_global_history_and_other_sets_intact() {
         assert_eq!(was.minutes, now.minutes);
     }
 
-    // Only the reset set starts from zero.
+    // Current progress starts from zero, but the learning history of the set is
+    // kept: its reviews, accuracy, minutes and "Last 30 Days" chart survive.
     let after_alpha = statistics::set_statistics(&db.pool, &alpha.set.id)
         .await
         .expect("alpha statistics after reset");
@@ -1257,18 +1258,25 @@ async fn resetting_one_set_keeps_global_history_and_other_sets_intact() {
     assert_eq!(after_alpha.learning, 0);
     assert_eq!(after_alpha.new_cards, 2);
     assert_eq!(after_alpha.due, 0);
-    assert_eq!(after_alpha.reviews, 0);
-    assert_eq!(after_alpha.accuracy, 0.0);
-    assert_eq!(after_alpha.minutes, 0.0);
-    assert!(after_alpha.tests.is_empty());
-    assert!(after_alpha
-        .daily
-        .iter()
-        .all(|day| day.reviews == 0 && day.cards == 0 && day.minutes == 0.0));
+    assert_eq!(after_alpha.reviews, 2, "review history is not progress");
+    assert_eq!(after_alpha.accuracy, before_alpha.accuracy);
+    assert_eq!(after_alpha.minutes, before_alpha.minutes);
+    assert!(after_alpha.tests.is_empty(), "test progress is reset");
+    let today = Local::now().date_naive().to_string();
+    for day in &after_alpha.daily {
+        if day.date == today {
+            assert_eq!(day.reviews, 2, "today's history stays in the set chart");
+            assert_eq!(day.cards, 2);
+            assert_eq!(day.minutes, 3.0);
+        } else {
+            assert_eq!(day.reviews, 0);
+            assert_eq!(day.minutes, 0.0);
+        }
+    }
     assert!(after_alpha
         .cards_detail
         .iter()
-        .all(|c| c.correct == 0 && c.wrong == 0));
+        .all(|c| c.correct == 0 && c.wrong == 0 && c.state == "new"));
 
     // History rows are kept, progress rows are neither duplicated nor lost.
     let reviews_kept: i64 =
@@ -1314,8 +1322,9 @@ async fn resetting_one_set_keeps_global_history_and_other_sets_intact() {
         .iter()
         .find(|row| row.set_id == beta.set.id)
         .expect("beta row");
-    assert_eq!(alpha_row.reviews, 0);
-    assert_eq!(alpha_row.minutes, 0.0);
+    assert_eq!(alpha_row.reviews, 2);
+    assert_eq!(alpha_row.minutes, 3.0);
+    assert_eq!(alpha_row.mastered, 0);
     assert_eq!(beta_row.reviews, 1);
 
     // Studying after a reset counts for the set and for the global totals again.
@@ -1331,7 +1340,7 @@ async fn resetting_one_set_keeps_global_history_and_other_sets_intact() {
     let resumed = statistics::set_statistics(&db.pool, &alpha.set.id)
         .await
         .expect("alpha statistics after new review");
-    assert_eq!(resumed.reviews, 1);
+    assert_eq!(resumed.reviews, 3, "history plus the new review");
     assert_eq!(resumed.cards_detail[0].correct, 1);
 
     // A second reset stays idempotent and still leaves global totals alone.
@@ -1349,12 +1358,142 @@ async fn resetting_one_set_keeps_global_history_and_other_sets_intact() {
     let reset_again = statistics::set_statistics(&db.pool, &alpha.set.id)
         .await
         .expect("alpha statistics after second reset");
-    assert_eq!(reset_again.reviews, 0);
+    assert_eq!(
+        reset_again.reviews, 3,
+        "history is never dropped by a reset"
+    );
+    assert_eq!(reset_again.mastered, 0);
+    assert!(reset_again.cards_detail.iter().all(|c| c.correct == 0));
 
     assert!(
         sessions::reset_set(&db.pool, "missing-set").await.is_err(),
         "resetting an unknown set reports an error"
     );
+
+    db.cleanup().await;
+}
+
+#[tokio::test]
+async fn dashboard_set_lists_follow_the_last_opened_timestamp() {
+    let mut db = TestDb::new().await;
+    let first = sets::create(&db.pool, set_input("First", vec![card("A", "1")]))
+        .await
+        .expect("create first");
+    let second = sets::create(&db.pool, set_input("Second", vec![card("B", "2")]))
+        .await
+        .expect("create second");
+
+    let stamp = |id: String, value: &'static str| {
+        let pool = db.pool.clone();
+        async move {
+            sqlx::query("UPDATE study_sets SET last_opened_at = ? WHERE id = ?")
+                .bind(value)
+                .bind(id)
+                .execute(&pool)
+                .await
+                .expect("stamp opened at");
+        }
+    };
+
+    // Neither set has a card due, yet both belong in the section: previously a
+    // set disappeared as soon as it had nothing due.
+    let dashboard = statistics::dashboard(&db.pool, 20)
+        .await
+        .expect("dashboard");
+    assert_eq!(dashboard.continue_sets.len(), 2);
+    let listed: Vec<&str> = dashboard
+        .continue_sets
+        .iter()
+        .map(|set| set.id.as_str())
+        .collect();
+    assert!(listed.contains(&first.set.id.as_str()));
+    assert!(listed.contains(&second.set.id.as_str()));
+
+    // Opening a set records a durable timestamp.
+    sets::mark_opened(&db.pool, &first.set.id)
+        .await
+        .expect("mark first opened");
+    let opened: Option<String> =
+        sqlx::query_scalar("SELECT last_opened_at FROM study_sets WHERE id = ?")
+            .bind(&first.set.id)
+            .fetch_one(&db.pool)
+            .await
+            .expect("last_opened_at");
+    assert!(opened.is_some(), "opening persists a timestamp");
+
+    // Timestamps from the past keep the expectations independent of the clock.
+    stamp(first.set.id.clone(), "2026-11-12T08:00:00.000Z").await;
+    stamp(second.set.id.clone(), "2026-11-12T09:00:00.000Z").await;
+    let dashboard = statistics::dashboard(&db.pool, 20)
+        .await
+        .expect("dashboard");
+    assert_eq!(dashboard.continue_sets[0].id, second.set.id);
+    assert_eq!(dashboard.continue_sets[1].id, first.set.id);
+    assert_eq!(
+        dashboard.recent_sets[0].id, second.set.id,
+        "the recently opened list follows the same order"
+    );
+
+    // Opening the detail view is what the UI does; it moves the set to the front.
+    stamp(first.set.id.clone(), "2026-11-12T10:00:00.000Z").await;
+    let dashboard = statistics::dashboard(&db.pool, 20)
+        .await
+        .expect("dashboard");
+    assert_eq!(dashboard.continue_sets[0].id, first.set.id);
+    sets::detail(&db.pool, &second.set.id)
+        .await
+        .expect("open second");
+    let dashboard = statistics::dashboard(&db.pool, 20)
+        .await
+        .expect("dashboard");
+    assert_eq!(
+        dashboard.continue_sets[0].id, second.set.id,
+        "opening a set updates its last-opened timestamp"
+    );
+
+    // The order and the contents survive a restart.
+    db.reopen().await;
+    let reopened = statistics::dashboard(&db.pool, 20)
+        .await
+        .expect("dashboard after restart");
+    assert_eq!(reopened.continue_sets.len(), 2);
+    assert_eq!(reopened.continue_sets[0].id, second.set.id);
+    assert_eq!(reopened.continue_sets[1].id, first.set.id);
+
+    // Archiving hides a set and restoring it brings it back in place.
+    sets::set_archived(&db.pool, &second.set.id, true)
+        .await
+        .expect("archive second");
+    let archived = statistics::dashboard(&db.pool, 20)
+        .await
+        .expect("dashboard with archived set");
+    assert_eq!(archived.continue_sets.len(), 1);
+    assert_eq!(archived.continue_sets[0].id, first.set.id);
+    sets::set_archived(&db.pool, &second.set.id, false)
+        .await
+        .expect("restore second");
+    let restored = statistics::dashboard(&db.pool, 20)
+        .await
+        .expect("dashboard after restore");
+    assert_eq!(restored.continue_sets.len(), 2);
+
+    // Deleting the last set empties the section instead of leaving stale rows.
+    sets::delete(&db.pool, &first.set.id)
+        .await
+        .expect("delete first");
+    let after_delete = statistics::dashboard(&db.pool, 20)
+        .await
+        .expect("dashboard after delete");
+    assert_eq!(after_delete.continue_sets.len(), 1);
+    assert_eq!(after_delete.continue_sets[0].id, second.set.id);
+    sets::delete(&db.pool, &second.set.id)
+        .await
+        .expect("delete second");
+    let empty = statistics::dashboard(&db.pool, 20)
+        .await
+        .expect("dashboard when empty");
+    assert!(empty.continue_sets.is_empty());
+    assert!(empty.recent_sets.is_empty());
 
     db.cleanup().await;
 }

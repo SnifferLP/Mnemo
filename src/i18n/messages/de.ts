@@ -287,7 +287,7 @@ export const de: Record<string, string> = {
   "Show hint": "Hinweis anzeigen",
   "Your answer:": "Deine Antwort:",
   "Correct answer:": "Richtige Antwort:",
-  "AI tutor:": "KI-Tutor:",
+  "AI assistant:": "KI-Assistenz:",
   "Mnemo home": "Mnemo-Startseite",
   "This page does not exist": "Diese Seite gibt es nicht",
   "The view you were looking for may have been moved or removed.":
@@ -502,7 +502,8 @@ export const de: Record<string, string> = {
   "_Add a card to preview Markdown._": "_Füge eine Karte hinzu, um die Markdown-Vorschau zu sehen._",
   "A backup is a complete copy of the database: sets, cards, media references, progress, sessions and tests.": "Eine Sicherung ist eine vollständige Kopie der Datenbank: Lernsets, Karten, Medienverweise, Fortschritt, Sitzungen und Tests.",
   "A nudge shown before revealing the answer": "Ein kleiner Denkanstoß, bevor die Antwort aufgedeckt wird",
-  "A tutor that works with your own study sets — and never reveals answers too early.": "Ein Tutor, der mit deinen eigenen Lernsets arbeitet – und Antworten nie zu früh verrät.",
+  "An AI assistant that works with your own study sets — and never reveals answers too early.":
+    "Eine KI-Assistenz, die mit deinen eigenen Lernsets arbeitet – und Antworten nie zu früh verrät.",
   "AI context": "KI-Kontext",
   "AI context & limits": "KI-Kontext & Grenzen",
   "AI grading sends the card and your answer to the selected provider. It is only used in writing mode and never automatically.": "Bei der KI-Bewertung werden Karte und Antwort an den gewählten Anbieter gesendet. Sie wird nur im Schreibmodus verwendet und nie automatisch ausgelöst.",
@@ -522,10 +523,11 @@ export const de: Record<string, string> = {
   "Answer checking": "Antwortprüfung",
   "Answers are checked locally; AI grading is optional in Settings.": "Antworten werden lokal geprüft; die KI-Bewertung kannst du optional in den Einstellungen aktivieren.",
   "App data": "App-Daten",
-  "Ask about a concept, request an explanation, or let the tutor quiz you on a set.": "Frage nach einem Konzept, bitte um eine Erklärung oder lass dich vom Tutor zu einem Lernset abfragen.",
+  "Ask about a concept, request an explanation, or let the AI assistant quiz you on a set.":
+    "Frage nach einem Konzept, bitte um eine Erklärung oder lass dich von der KI-Assistenz zu einem Lernset abfragen.",
   "Ask anything about your material…": "Frag alles zu deinem Lernmaterial …",
   "Ask the provider whether a typed answer means the same thing": "Den Anbieter prüfen lassen, ob eine getippte Antwort inhaltlich dasselbe bedeutet",
-  "Ask the tutor": "Tutor fragen",
+  "Ask AI": "KI fragen",
   "Auto": "Automatisch",
   "Auto-submits when the timer runs out": "Wird automatisch abgegeben, sobald die Zeit abgelaufen ist",
   "Backup & restore": "Sicherung & Wiederherstellung",
@@ -542,7 +544,8 @@ export const de: Record<string, string> = {
   "Checking…": "Wird geprüft …",
   "Choose a model": "Modell wählen",
   "Choose definition": "Definition wählen",
-  "Choose what the tutor may read. Everything stays on this machine except the messages you send.": "Lege fest, was der Tutor lesen darf. Alles bleibt auf diesem Gerät, außer den Nachrichten, die du sendest.",
+  "Choose what the AI assistant may read. Everything stays on this machine except the messages you send.":
+    "Lege fest, was die KI-Assistenz lesen darf. Alles bleibt auf diesem Gerät, außer den Nachrichten, die du sendest.",
   "Click or press": "Klicke oder drücke",
   "Configure an AI provider first": "Richte zuerst einen KI-Anbieter ein",
   "Connection established.": "Verbindung hergestellt.",
@@ -582,7 +585,8 @@ export const de: Record<string, string> = {
   "Key points": "Kernpunkte",
   "Keyboard: Space to flip · 1 still learning · 2 knew it": "Tastatur: Leertaste zum Umdrehen · 1 noch am Lernen · 2 gewusst",
   "Leave the test? Answers will be lost.": "Test verlassen? Deine Antworten gehen verloren.",
-  "Let the tutor follow the conversation": "Den Tutor dem Gesprächsverlauf folgen lassen",
+  "Let the AI assistant follow the conversation":
+    "Die KI-Assistenz dem Gesprächsverlauf folgen lassen",
   "Levenshtein distance allowed for typed answers in writing and tests.": "Erlaubte Levenshtein-Distanz für getippte Antworten im Schreibmodus und in Tests.",
   "Load models": "Modelle laden",
   "Loaded {count} models": "{count} Modelle geladen",
@@ -696,7 +700,7 @@ export const de: Record<string, string> = {
   "Test": "Testen",
   "Test results": "Testergebnisse",
   "The provider returned no chat models": "Der Anbieter hat keine Chatmodelle zurückgegeben",
-  "The tutor could not answer": "Der Tutor konnte nicht antworten",
+  "The AI assistant could not answer": "Die KI-Assistenz konnte nicht antworten",
   "Time": "Zeit",
   "Time limit": "Zeitlimit",
   "Turn notes into study material": "Notizen in Lernmaterial verwandeln",
@@ -753,7 +757,7 @@ export const de: Record<string, string> = {
   "Recently updated": "Zuletzt aktualisiert",
 
   // Assistant modes and prompts
-  Tutor: "Tutor",
+  "AI assistant": "KI-Assistenz",
   Socratic: "Sokratisch",
   Simplify: "Vereinfachen",
   "Clear explanations": "Klare Erklärungen",
