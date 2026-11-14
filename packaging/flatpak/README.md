@@ -61,7 +61,7 @@ flatpak-builder --user --force-clean --disable-rofiles-fuse \
 
 `--default-branch=stable` matters: Flathub publishes the `stable` branch, so a bundle built for the same branch is updated into the Flathub build later instead of installing a second copy.
 
-The manifest's only source of the repository is a `git` source pinned to the release tag, so a build always compiles the tagged tree.
+The manifest's only source of the repository is a `git` source pinned to the release tag, so a build always compiles the tagged tree. That tag only exists once the release it describes is published, so CI and the release build run `scripts/ci/make-flatpak-ci-manifest.py`, which writes `com.mnemo.study.ci.yml` with the checked-out tree as the source and everything else unchanged. The script also rejects a manifest whose tag and `package.json` version disagree.
 
 ## Distributable bundle
 
