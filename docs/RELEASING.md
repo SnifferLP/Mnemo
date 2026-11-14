@@ -94,7 +94,7 @@ flatpak build-bundle --runtime-repo=https://dl.flathub.org/repo/flathub.flatpakr
   flatpak-repo Mnemo_<version>_x86_64.flatpak com.mnemo.study stable
 ```
 
-The manifest pins the GNOME 51 runtime, the Rust and Node.js SDK extensions and the repository tag, and resolves every crate and npm package from the committed source lists, so the build itself is offline and reproducible. See [`packaging/flatpak/README.md`](../packaging/flatpak/README.md). The bundle is a release asset but **not** part of `latest.json`: only the Windows installer and the AppImage are updater payloads.
+The manifest pins the GNOME 51 runtime, the Rust and Node.js SDK extensions and the repository tag, and resolves every crate and npm package from the committed source lists, so the build itself is offline and reproducible. Because the tag only exists after the release is published, CI and `release.yml` call `scripts/ci/make-flatpak-ci-manifest.py` first; it copies the manifest and swaps the git source for the checked-out tree, so both build the same commit from the same recipe. See [`packaging/flatpak/README.md`](../packaging/flatpak/README.md). The bundle is a release asset but **not** part of `latest.json`: only the Windows installer and the AppImage are updater payloads.
 
 ### Arch package
 
