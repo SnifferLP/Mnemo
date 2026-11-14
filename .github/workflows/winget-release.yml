@@ -265,14 +265,11 @@ jobs:
           Write-Host "wingetcreate $($env:WINGETCREATE_VERSION) verified."
           "WINGETCREATE_DIR=$dir" | Add-Content -Path $env:GITHUB_ENV
           $dir | Add-Content -Path $env:GITHUB_PATH
-          # wingetcreate has no --version switch: an unknown argument prints the
-          # command list and exits non-zero, which failed the whole job after the
-          # binary had already been verified. The `version` subcommand prints the
-          # build and returns zero.
-          & $exe version
-          if ($LASTEXITCODE -ne 0) {
-            throw "wingetcreate version failed with exit code $LASTEXITCODE."
-          }
+          # Do not probe the version here. wingetcreate's parser has no version
+          # verb: both `--version` and `version` fall through to the help screen
+          # and exit 1 by design, which failed this step after the binary had
+          # already been verified. The pinned SHA-256 above is the integrity
+          # check, and the first real invocation reports the version in its banner.
 
       - name: Generate updated manifests
         shell: pwsh
