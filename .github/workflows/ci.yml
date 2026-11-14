@@ -147,6 +147,10 @@ jobs:
     name: Linux package bundles
     uses: ./.github/workflows/build-linux.yml
 
+  flatpak-bundle:
+    name: Linux Flatpak bundle
+    uses: ./.github/workflows/build-flatpak.yml
+
   arch-package:
     name: Arch package
     uses: ./.github/workflows/build-arch.yml

@@ -12,6 +12,8 @@ Update the version consistently in:
 - `src-tauri/Cargo.lock` (the `mnemo` package entry)
 - `packaging/arch/PKGBUILD`
 - `packaging/arch/build-binary-package.sh`
+- `packaging/flatpak/com.mnemo.study.yml` (the `tag:` of its source entry)
+- `packaging/flatpak/com.mnemo.study.metainfo.xml` (the release entry)
 - `CHANGELOG.md` and the GitHub Release notes
 
 Keep `pnpm-lock.yaml` unchanged unless dependencies changed.
@@ -34,7 +36,7 @@ Also verify a clean checkout builds, confirm no database or secret is present, a
 
 ## 3. Updater signing
 
-Mnemo uses the official Tauri 2 updater for Windows x64 NSIS builds and Linux x86_64 AppImages. The `.deb` and Arch packages intentionally do not use the in-app updater.
+Mnemo uses the official Tauri 2 updater for Windows x64 NSIS builds and Linux x86_64 AppImages. The Flatpak and the Arch package intentionally do not use the in-app updater: Flatpak delivers updates for `com.mnemo.study` from the remote it was installed from, and pacman owns the Arch package. The Flatpak build recognises its sandbox through `/.flatpak-info` and tells the user in **Settings → Updates** that Flatpak handles updates, so it never downloads an AppImage over a sandboxed installation.
 
 The updater key pair is created once with:
 
@@ -69,17 +71,30 @@ Expected bundle:
 
 The Windows Authenticode installer remains **unsigned**. Do not describe it as code-signed. SmartScreen may warn users about an unknown publisher. The separate Tauri `.sig` file signs the updater payload; it is not a Windows Authenticode signature.
 
-### Linux AppImage and Debian package
+### Linux AppImage
 
 ```bash
-pnpm tauri build
+pnpm tauri build --bundles appimage
 ```
 
 Expected bundles:
 
 - `src-tauri/target/release/bundle/appimage/Mnemo_<version>_amd64.AppImage`
 - `src-tauri/target/release/bundle/appimage/Mnemo_<version>_amd64.AppImage.sig` when the updater-enabled config and signing secret are present
-- `src-tauri/target/release/bundle/deb/Mnemo_<version>_amd64.deb`
+
+Debian packages were discontinued in `1.2.6-rc.3`. `src-tauri/tauri.conf.json` therefore targets `appimage` only, and `release.yml` fails if a `.deb` ever reappears in the artifact tree.
+
+### Linux Flatpak
+
+```bash
+flatpak-builder --user --force-clean --disable-rofiles-fuse --default-branch=stable \
+  --state-dir=flatpak-state --repo=flatpak-repo flatpak-build \
+  packaging/flatpak/com.mnemo.study.yml
+flatpak build-bundle --runtime-repo=https://dl.flathub.org/repo/flathub.flatpakrepo \
+  flatpak-repo Mnemo_<version>_x86_64.flatpak com.mnemo.study stable
+```
+
+The manifest pins the GNOME 51 runtime, the Rust and Node.js SDK extensions and the repository tag, and resolves every crate and npm package from the committed source lists, so the build itself is offline and reproducible. See [`packaging/flatpak/README.md`](../packaging/flatpak/README.md). The bundle is a release asset but **not** part of `latest.json`: only the Windows installer and the AppImage are updater payloads.
 
 ### Arch package
 
@@ -107,11 +122,12 @@ The release workflow regenerates the source archive from the tagged commit and a
 Publishing a GitHub Release triggers `.github/workflows/release.yml`. It runs these jobs in parallel:
 
 1. Windows checks and signed NSIS installer.
-2. Linux signed AppImage and `.deb`.
-3. Arch package.
-4. Source archive.
+2. Linux signed AppImage.
+3. Flatpak bundle.
+4. Arch package.
+5. Source archive.
 
-After all four succeed, the publish job downloads the artifacts, verifies that the Windows and AppImage signatures exist, writes a `latest.json` manifest with the signed Windows and Linux entries, writes `SHA256SUMS`, and attaches everything to the existing release. The workflow does not create the release or tag. It fails instead of publishing a manifest that references a missing or unsigned artifact.
+After all of them succeed, the publish job downloads the artifacts, verifies that the Windows and AppImage signatures exist, writes a `latest.json` manifest with the signed Windows and Linux entries, writes `SHA256SUMS`, and attaches everything to the existing release. The Flatpak bundle and the Arch package are attached as ordinary assets; neither is part of the updater manifest. The workflow does not create the release or tag. It fails instead of publishing a manifest that references a missing or unsigned artifact.
 
 The release build requires both updater secrets. The reusable build workflows check for them before compiling. If either is missing, the release fails with an explicit error; normal CI builds remain unsigned and do not need the secrets.
 
@@ -192,10 +208,12 @@ Create the tag and release only after the version commit is on `main` and CI is 
 sha256sum \
   src-tauri/target/release/bundle/appimage/Mnemo_<version>_amd64.AppImage \
   src-tauri/target/release/bundle/appimage/Mnemo_<version>_amd64.AppImage.sig \
-  src-tauri/target/release/bundle/deb/Mnemo_<version>_amd64.deb \
+  Mnemo_<version>_x86_64.flatpak \
   packaging/arch/mnemo-<version>-1-x86_64.pkg.tar.zst \
   packaging/arch/mnemo-<version>.tar.gz
 ```
+
+The release must contain the NSIS installer, the AppImage and the Flatpak bundle, and no `.deb` file.
 
 Download all release assets, including the normal packages, both updater signatures, `latest.json` and `SHA256SUMS`, and verify them. Confirm `latest.json` has the same version as the tag and that both entries carry non-empty signatures. Confirm the Stable Releases channel does not accept a pre-release tag.
 
@@ -206,7 +224,8 @@ CI checks:
 - TypeScript, frontend tests and production frontend build on Linux and Windows.
 - Rust formatting, Clippy and Rust tests on Linux and Windows.
 - NSIS installer creation and artifact upload.
-- Linux AppImage and `.deb` creation.
+- Linux AppImage creation.
+- Flatpak bundle creation against the GNOME runtime.
 - Arch package creation.
 - Gitleaks secret scanning.
 - actionlint on every `.github/workflows/*.yml` and `*.yaml` file, plus `bash -n`
@@ -233,8 +252,11 @@ Record what was tested and on which Windows version. If a check was not performe
 
 ### Manual Linux QA checklist
 
-- Install the Arch package and the `.deb` where practical.
+- Install the Arch package where practical.
 - Run the AppImage, including `--appimage-extract-and-run` without FUSE.
+- Install the Flatpak bundle, confirm Flatpak pulls the GNOME 51 runtime from Flathub, and run `flatpak run com.mnemo.study` on KDE Plasma (and on GNOME where available).
+- Inside the Flatpak: import a set, export it to a folder outside the sandbox, back up and restore the database, attach an image and an audio file, and open the repository link. Every one of those must work through the desktop portal without a `--filesystem` permission.
+- Confirm the data in `~/.var/app/com.mnemo.study/data/com.mnemo.study/` survives a restart and a `flatpak update`.
 - Confirm the version in the window, package metadata and Data settings.
 - Check bundled fonts render offline, themes and existing databases remain intact.
 
@@ -249,7 +271,7 @@ On Windows x64 and Linux x86_64 AppImage builds, verify at least:
 - Later dismisses the notification and it does not reappear for the same version in that session.
 - Download shows progress, the signature is accepted, the app restarts or the NSIS installer relaunches it, and user data/settings survive.
 - A deliberately invalid signature, missing asset or download failure leaves the current installation usable and shows an error.
-- Package-managed `.deb` and Arch builds report that automatic updates are handled by the package manager.
+- The Flatpak reports that Flatpak handles updates and never offers an AppImage download; the Arch build reports that the package manager handles updates.
 
 ## 7. winget publishing (automatic)
 
@@ -344,5 +366,5 @@ The workflow uploads every generated manifest as the `winget-manifests-<version>
 - Confirm the source archive matches the recorded checksum.
 - Confirm `main` remains clean and the tag points to the intended commit.
 - Confirm the release notes distinguish the Windows Authenticode signing status from the Tauri updater signature.
-- Confirm the release includes `latest.json`, both `.sig` files and the normal packages.
+- Confirm the release includes `latest.json`, both `.sig` files, the AppImage, the Flatpak bundle and the Arch package, and no `.deb`.
 - Update any AUR or distribution recipe separately, with its own review and checksum.

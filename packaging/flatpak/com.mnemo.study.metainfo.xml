@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.mnemo.study</id>
+  <metadata_license>MIT</metadata_license>
+  <project_license>MIT</project_license>
+  <name>Mnemo</name>
+  <summary>A quieter way to remember</summary>
+  <developer id="com.mnemo">
+    <name>The Mnemo Authors</name>
+  </developer>
+
+  <description>
+    <p>
+      Mnemo is a local-first desktop study app for flashcards, spaced repetition
+      and deliberate practice. Everything is stored on your own computer and no
+      account is required.
+    </p>
+    <p>Features:</p>
+    <ul>
+      <li>Folders, tags, favourites, search and archiving for study sets</li>
+      <li>Flashcards, adaptive learning, writing practice, SM-2 spaced repetition, practice tests and a matching game</li>
+      <li>Import from CSV, TSV, JSON and Quizlet-style text; export to CSV, TSV, JSON, Markdown and PDF</li>
+      <li>Insights with due counts, daily goals, streaks and activity heatmaps</li>
+      <li>Optional AI assistance through OpenAI-compatible APIs, Gemini or a local Ollama</li>
+      <li>English and German interface with bundled offline fonts</li>
+    </ul>
+    <p>
+      There is no telemetry and no vendor-hosted service. AI features only call
+      the provider you configure yourself.
+    </p>
+  </description>
+
+  <launchable type="desktop-id">com.mnemo.study.desktop</launchable>
+
+  <url type="homepage">https://github.com/SnifferLP/Mnemo</url>
+  <url type="bugtracker">https://github.com/SnifferLP/Mnemo/issues</url>
+  <url type="vcs-browser">https://github.com/SnifferLP/Mnemo</url>
+  <url type="help">https://github.com/SnifferLP/Mnemo#readme</url>
+
+  <screenshots>
+    <screenshot type="default">
+      <caption>The study library with sample activity, daily goal and recent sets</caption>
+      <image type="source">https://raw.githubusercontent.com/SnifferLP/Mnemo/main/docs/screenshots/lightmode-dashboard.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>A study set with search, favourites and folder filters</caption>
+      <image type="source">https://raw.githubusercontent.com/SnifferLP/Mnemo/main/docs/screenshots/lightmode-set-overview.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>The AI study assistant in dark mode with per-set context controls</caption>
+      <image type="source">https://raw.githubusercontent.com/SnifferLP/Mnemo/main/docs/screenshots/darkmode-ai-overview.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Appearance settings with display font, language, theme and accent colour</caption>
+      <image type="source">https://raw.githubusercontent.com/SnifferLP/Mnemo/main/docs/screenshots/darkmode-settings-overview.png</image>
+    </screenshot>
+  </screenshots>
+
+  <releases>
+    <release version="1.2.6-rc.3" date="2026-11-14">
+      <description>
+        <p>
+          First release with Flatpak distribution. The Flatpak replaces the
+          Debian package; the AppImage and the Windows installer are unchanged.
+        </p>
+        <p>
+          Updates for the Flatpak are delivered by Flatpak itself, so the in-app
+          updater is inactive in this build.
+        </p>
+      </description>
+    </release>
+  </releases>
+
+  <content_rating type="oars-1.1"/>
+
+  <categories>
+    <category>Education</category>
+  </categories>
+
+  <keywords>
+    <keyword>flashcards</keyword>
+    <keyword>study</keyword>
+    <keyword>spaced repetition</keyword>
+    <keyword>learning</keyword>
+    <keyword>quiz</keyword>
+  </keywords>
+
+  <recommends>
+    <control>keyboard</control>
+    <control>pointing</control>
+    <control>touch</control>
+  </recommends>
+</component>

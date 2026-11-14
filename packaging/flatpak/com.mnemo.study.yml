@@ -1,0 +1,102 @@
+# Flatpak manifest for Mnemo.
+#
+# Runtime: GNOME 51 (freedesktop-sdk 26.08) — the newest branch that still
+# ships WebKitGTK 4.1, which Tauri 2 links against. The SDK extensions provide
+# the exact Rust and Node.js versions used by CI without touching the network
+# during the build: every crate and every npm tarball is declared in
+# cargo-sources.json / node-sources.json, and pnpm itself is a pinned release
+# archive.
+#
+# Build:
+#   flatpak-builder --force-clean --user --disable-rofiles-fuse \
+#     --repo=repo builddir packaging/flatpak/com.mnemo.study.yml
+#   flatpak build-bundle --runtime-repo=https://dl.flathub.org/repo/flathub.flatpakrepo \
+#     repo Mnemo_<version>_x86_64.flatpak com.mnemo.study
+id: com.mnemo.study
+
+runtime: org.gnome.Platform
+runtime-version: '51'
+sdk: org.gnome.Sdk
+command: mnemo
+
+# The bundled UI, fonts and AppStream data are English/German only, so no
+# separate locale split is needed.
+separate-locales: false
+
+finish-args:
+  # Window: Wayland first, X11 through XWayland where X11 is still required.
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --share=ipc
+  # WebKitGTK renders through EGL/GBM.
+  - --device=dri
+  # Card audio attachments are played by WebKitGTK through GStreamer.
+  - --socket=pulseaudio
+  # AI providers (and a local Ollama) are reached directly from the app.
+  - --share=network
+  # File import/export, backup/restore and the repository link go through the
+  # XDG desktop portals instead of host filesystem permissions.
+
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.node22
+  - org.freedesktop.Sdk.Extension.rust-stable
+
+build-options:
+  append-path: /usr/lib/sdk/node22/bin:/usr/lib/sdk/rust-stable/bin
+  env:
+    CARGO_HOME: /run/build/mnemo/cargo
+    XDG_CACHE_HOME: /run/build/mnemo/cache
+
+modules:
+  - name: mnemo
+    buildsystem: simple
+    build-options:
+      # pnpm is unpacked here by the first build command.
+      append-path: /run/build/mnemo/pnpm-home
+      env:
+        CARGO_HOME: /run/build/mnemo/cargo
+        XDG_CACHE_HOME: /run/build/mnemo/cache
+        CARGO_NET_OFFLINE: 'true'
+        npm_config_offline: 'true'
+    sources:
+      - type: git
+        url: https://github.com/SnifferLP/Mnemo.git
+        tag: v1.2.6-rc.3
+      - type: file
+        url: https://github.com/pnpm/pnpm/releases/download/v12.18.0/pnpm-linux-x64.tar.gz
+        sha256: 3726060e236c0db3e7124c0a5af123c840ba0cb76682149b63ea0baf290017c2
+        only-arches:
+          - x86_64
+      - node-sources.json
+      - cargo-sources.json
+    build-commands:
+      - mkdir -p /run/build/mnemo/pnpm-home
+      - tar -xzf pnpm-linux-x64.tar.gz -C /run/build/mnemo/pnpm-home
+      - pnpm --version
+      # node-sources.json pre-populates the pnpm store from the declared
+      # tarballs; --offline keeps the build reproducible and network-free.
+      - pnpm install --offline --frozen-lockfile --trust-lockfile
+      # The Tauri bundle targets are irrelevant here: only the compiled binary
+      # is installed, and the Flatpak metadata below describes the app.
+      - pnpm tauri build --no-bundle
+      - install -Dm755 src-tauri/target/release/mnemo /app/bin/mnemo
+      - strip --strip-all /app/bin/mnemo
+      - install -Dm644 packaging/flatpak/com.mnemo.study.desktop
+        /app/share/applications/com.mnemo.study.desktop
+      - install -Dm644 packaging/flatpak/com.mnemo.study.metainfo.xml
+        /app/share/metainfo/com.mnemo.study.metainfo.xml
+      - install -Dm644 packaging/flatpak/icons/com.mnemo.study.png
+        /app/share/icons/hicolor/512x512/apps/com.mnemo.study.png
+      - install -Dm644 src-tauri/icons/32x32.png
+        /app/share/icons/hicolor/32x32/apps/com.mnemo.study.png
+      - install -Dm644 src-tauri/icons/128x128.png
+        /app/share/icons/hicolor/128x128/apps/com.mnemo.study.png
+      - install -Dm644 src-tauri/icons/128x128@2x.png
+        /app/share/icons/hicolor/256x256/apps/com.mnemo.study.png
+      - install -Dm644 LICENSE /app/share/licenses/com.mnemo.study/LICENSE
+      - install -Dm644 THIRD_PARTY_NOTICES.md
+        /app/share/licenses/com.mnemo.study/THIRD_PARTY_NOTICES.md
+      - install -Dm644 licenses/OFL-1.1.txt
+        /app/share/licenses/com.mnemo.study/OFL-1.1.txt
+      - install -Dm644 licenses/Monocraft-OFL-1.1.txt
+        /app/share/licenses/com.mnemo.study/Monocraft-OFL-1.1.txt

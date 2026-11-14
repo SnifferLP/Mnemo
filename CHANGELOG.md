@@ -2,6 +2,25 @@
 
 All notable changes to Mnemo are documented here. The project follows [Semantic Versioning](https://semver.org/).
 
+## [1.2.6-rc.3] - 2026-11-14
+
+Third release candidate for `1.2.6`, replacing the Debian package with a Flatpak. Study sets, progress, review history and settings are kept.
+
+### Changed
+
+- **Linux is distributed as Flatpak and AppImage; Debian packages are discontinued.** The `.deb` is no longer built, no longer attached to releases and no longer documented. Flatpak is now the package-managed Linux format and keeps the AppImage as the portable one.
+- **A Flatpak build of Mnemo exists** under the application ID `com.mnemo.study`, built against the GNOME 51 runtime with the Rust and Node.js SDK extensions, and packaged per Flathub conventions: AppStream metadata, an application-ID desktop entry, hicolor icons, license notices and a manifest whose crates and npm packages are pinned by checksum for offline, reproducible builds.
+- **Updates follow the installation format.** The Flatpak detects its sandbox and leaves updating to Flatpak (`flatpak update com.mnemo.study`, a software centre or the Flatpak background updater) instead of the Tauri updater, so no AppImage is ever downloaded into a sandbox and there is only one update notification. Windows and AppImage builds keep the existing signed in-app updater.
+
+### Added
+
+- Flatpak manifest, Flathub submission files (`flathub.json`, metainfo, icon, pinned `cargo-sources.json` and `node-sources.json`) and a dedicated `build-flatpak.yml` workflow that builds the bundle in CI and attaches it to every release. The Flathub submission itself still requires a pull request and reviewer approval, so Mnemo is not yet available on Flathub.
+- Documentation of the update mechanism per distribution format in the README and `docs/RELEASING.md`.
+
+### Removed
+
+- The Debian bundle target, the `.deb` build step and the `.deb` release asset.
+
 ## [1.2.6-rc.2] - 2026-11-13
 
 Second release candidate for `1.2.6`. Study sets, progress, review history and settings are kept.

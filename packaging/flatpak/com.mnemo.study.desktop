@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Mnemo
+GenericName=Flashcard Study App
+Comment=Offline-first study platform with flashcards and spaced repetition
+Exec=mnemo
+Icon=com.mnemo.study
+Terminal=false
+Categories=Education;
+Keywords=flashcards;study;spaced repetition;quiz;learning;memory;
+StartupNotify=true
+StartupWMClass=com.mnemo.study
