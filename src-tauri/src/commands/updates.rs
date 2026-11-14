@@ -130,6 +130,17 @@ struct GithubRelease {
     assets: Vec<GithubAsset>,
 }
 
+/// True when the process runs inside a Flatpak sandbox.
+///
+/// Every Flatpak sandbox exposes `/.flatpak-info`, and portal-launched
+/// children also carry `FLATPAK_ID`. Flatpak owns the update cycle for its
+/// installations, so the Tauri updater must stay out of the way instead of
+/// downloading an AppImage over the sandboxed files.
+#[cfg(target_os = "linux")]
+fn is_flatpak() -> bool {
+    std::path::Path::new("/.flatpak-info").exists() || std::env::var_os("FLATPAK_ID").is_some()
+}
+
 pub fn support_info() -> UpdateSupport {
     let current_version = env!("CARGO_PKG_VERSION").to_string();
 
@@ -148,6 +159,14 @@ pub fn support_info() -> UpdateSupport {
         (
             false,
             Some("Automatic updates are currently available for Linux x86_64 only.".to_string()),
+        )
+    } else if is_flatpak() {
+        (
+            false,
+            Some(
+                "This is the Flatpak build of Mnemo. Updates are delivered by Flatpak: run \"flatpak update com.mnemo.study\" or update it from your software centre."
+                    .to_string(),
+            ),
         )
     } else if std::env::var_os("APPIMAGE").is_some() {
         (true, None)

@@ -55,14 +55,14 @@ Screenshots use neutral sample content from a development profile and show both 
 
 | Platform | Status | Distribution | Automatic updates |
 | --- | --- | --- | --- |
-| Windows 10/11 x64 | Supported | NSIS installer (`.exe`) | Yes |
+| Windows 10/11 x64 | Supported | NSIS installer (`.exe`) | Yes, in-app |
+| Linux x86_64 (Flatpak) | Supported | Flatpak bundle (`com.mnemo.study`) | Yes, by Flatpak |
+| Linux x86_64 (general) | Supported | AppImage | Yes, in-app |
 | Linux x86_64 (Arch) | Supported | `.pkg.tar.zst` | Package manager only |
-| Linux x86_64 (general) | Supported | AppImage | Yes |
-| Debian/Ubuntu x86_64 | Supported | `.deb` | Package manager only |
 | Linux aarch64 | Not officially released | Source build may work; no package is published | No |
 | macOS | Not supported | — | No |
 
-Windows builds are produced on `windows-latest` in GitHub Actions. Linux checks and package builds run on Linux runners. No macOS artifact is published.
+Windows builds are produced on `windows-latest` in GitHub Actions. Linux checks, the AppImage, the Flatpak bundle and the Arch package are built on Linux runners. No macOS artifact is published. Debian packages are no longer built or distributed; Flatpak is the package-managed Linux format.
 
 ## Download and installation
 
@@ -103,7 +103,7 @@ The AppImage needs FUSE 2. If FUSE is unavailable, run it with:
 
 ### Automatic updates
 
-Mnemo can update itself in place on **Windows x64 NSIS installations** and **Linux x86_64 AppImages** downloaded from this repository's GitHub Releases. The `.deb` and Arch packages are deliberately left to apt/pacman and are not modified by the in-app updater.
+Mnemo updates itself in place on **Windows x64 NSIS installations** and **Linux x86_64 AppImages** downloaded from this repository's GitHub Releases. The **Flatpak** is updated by Flatpak itself, and the **Arch package** is left to pacman; neither is modified by the in-app updater.
 
 Open **Settings → Updates** to choose a channel:
 
@@ -112,15 +112,35 @@ Open **Settings → Updates** to choose a channel:
 
 Checks run in the background at startup without blocking the app. If a compatible update is found, a dismissible notification appears in the bottom-right corner. Mnemo downloads and installs only after **Download and install** is selected, verifies the Tauri signature, and then restarts on Linux or lets the NSIS installer relaunch the Windows app. A failed check or installation leaves the current installation usable.
 
+| Format | How updates are delivered | In-app updater |
+| --- | --- | --- |
+| Windows NSIS (`.exe`) | Tauri updater downloads the signed installer from GitHub Releases, then the NSIS installer relaunches Mnemo | Active |
+| Linux AppImage | Tauri updater downloads and replaces the signed AppImage from GitHub Releases, then Mnemo restarts | Active |
+| Linux Flatpak | Flatpak updates the installation from the remote it came from (Flathub once published), triggered by `flatpak update`, a software centre or the Flatpak background updater | Inactive by design; the Flatpak build reports that Flatpak owns updates |
+| Arch package | pacman, from the package recipe | Inactive; the Arch build reports that the package manager owns updates |
+
+Only one updater is ever active in a build. The Flatpak never calls the Tauri updater, so it cannot offer an update that would replace the sandboxed binary with an AppImage, and users see a single update notification from Flatpak rather than two competing ones.
+
 Update signing uses Tauri's minisign key. The public key is embedded in `src-tauri/tauri.conf.json`; the encrypted private key and its password are GitHub Actions secrets named `TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`. Unsigned or tampered update payloads are rejected. Do not publish a release whose updater artifacts are missing signatures.
 
-### Debian and Ubuntu
+### Flatpak
+
+Mnemo ships a self-contained Flatpak with the application ID `com.mnemo.study`, built against the GNOME 51 runtime and the Flathub conventions. It is **not yet published on Flathub**; until the submission is accepted, install the bundle that is attached to each release:
 
 ```bash
-sudo apt install ./Mnemo_<version>_amd64.deb
+flatpak install --user ./Mnemo_<version>_x86_64.flatpak
+flatpak run com.mnemo.study
 ```
 
-The Debian package depends on the standard WebKitGTK 4.1 runtime libraries provided by your distribution.
+The bundle references Flathub as its runtime source, so Flatpak downloads the GNOME 51 runtime on first install. Update the installed application with:
+
+```bash
+flatpak update com.mnemo.study
+```
+
+A software centre such as Discover or GNOME Software performs the same update, and repeating the `flatpak install` command above with a newer bundle also works. Flatpak keeps the sandbox and the application data in place across updates.
+
+Inside the sandbox, imports, exports, backups and restores go through the desktop portals: the file chooser can read and write the files you pick without granting Mnemo access to your home directory. Mnemo's data lives in `~/.var/app/com.mnemo.study/data/com.mnemo.study/`.
 
 ## Getting started
 
@@ -162,6 +182,7 @@ Mnemo has no accounts, telemetry, analytics, cloud sync or bundled API keys. The
 | Data | Default location |
 | --- | --- |
 | Linux data directory | `$XDG_DATA_HOME/com.mnemo.study/` or `~/.local/share/com.mnemo.study/` |
+| Linux data directory (Flatpak) | `~/.var/app/com.mnemo.study/data/com.mnemo.study/` |
 | Windows data directory | `%APPDATA%\com.mnemo.study\` |
 | Database | `<data dir>/mnemo.db` (SQLite, WAL mode) |
 | Media attachments | `<data dir>/media/` |
@@ -175,7 +196,8 @@ To remove all local data, quit Mnemo and delete its data directory. Uninstalling
 ## System requirements
 
 - **Windows:** Windows 10 or Windows 11, x64, Microsoft WebView2 Runtime (installed automatically if missing and an internet connection is available).
-- **Linux:** x86_64 distribution with WebKitGTK 4.1, GTK 3 and libsoup 3; AppImage users also need FUSE 2.
+- **Linux (Flatpak):** Flatpak 1.12 or newer and a desktop portal (shipped by GNOME, KDE and every major desktop). The runtime supplies WebKitGTK 4.1, GTK 3, libsoup 3 and GStreamer, so no distribution packages are required.
+- **Linux (AppImage):** x86_64 distribution with WebKitGTK 4.1, GTK 3 and libsoup 3, plus FUSE 2.
 - A local SQLite-capable filesystem. Network shares are not recommended for the live database.
 - AI features require network access to the configured provider. Ollama can run entirely locally.
 
@@ -228,7 +250,9 @@ Vite serves the UI on `http://127.0.0.1:1420`; Tauri opens the native window. De
 pnpm tauri build
 ```
 
-On Linux this produces `.deb` and `.AppImage` bundles under `src-tauri/target/release/bundle/`. On Windows, `src-tauri/tauri.windows.conf.json` selects NSIS and produces an installer under `src-tauri/target/release/bundle/nsis/`.
+On Linux this produces an `.AppImage` under `src-tauri/target/release/bundle/appimage/`; the Debian bundle target has been removed. On Windows, `src-tauri/tauri.windows.conf.json` selects NSIS and produces an installer under `src-tauri/target/release/bundle/nsis/`.
+
+The Flatpak is not a Tauri bundle target. It is built from `packaging/flatpak/com.mnemo.study.yml` with `flatpak-builder`; see [`packaging/flatpak/README.md`](packaging/flatpak/README.md) for the manifest, the runtime and the bundle command.
 
 These ordinary builds do **not** produce updater signatures. To build signed updater artifacts locally, set `TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`, then merge the release config:
 
@@ -266,7 +290,7 @@ cargo test --all-targets
 
 The current local suite contains **33 Rust unit tests**, **15 Rust integration tests** and **56 frontend tests**. The frontend suite covers learning-round state, activity-chart axis helpers, flashcard option helpers, card-duplicate matching, settings merging, automatic-update defaults, motion preferences, update-channel persistence and translation catalogues. Rust tests cover SM-2 scheduling, answer normalization, import/export, AI request construction, settings sanitization, database migrations, CRUD, document removal, updater channel selection, statistics, persistence, starred terms, archive round trips and upgrade behavior.
 
-GitHub Actions also runs the Rust suite on Windows, builds the NSIS installer, builds Linux AppImage/`.deb` bundles and builds the Arch package. A successful compile is not a substitute for manual testing of Windows installation, display scaling, audio playback and other interactive behavior; see [`docs/RELEASING.md`](docs/RELEASING.md) for the manual QA checklist.
+GitHub Actions also runs the Rust suite on Windows, builds the NSIS installer, builds the Linux AppImage and Flatpak bundles and builds the Arch package. A successful compile is not a substitute for manual testing of Windows installation, display scaling, audio playback and other interactive behavior; see [`docs/RELEASING.md`](docs/RELEASING.md) for the manual QA checklist.
 
 ## License and third-party licenses
 
@@ -287,7 +311,8 @@ When reporting a Windows problem, please state whether it occurs with the instal
 
 - No cloud sync, sharing links, mobile app or multi-user accounts.
 - The Windows installer is currently unsigned. Updater artifacts are separately signed with Tauri's update key and are not affected by Windows Authenticode status.
-- Automatic updates are not implemented for `.deb`, Arch or other package-manager installations. Those packages must be updated through their package manager.
+- Automatic updates are not implemented for the Flatpak or the Arch package. Flatpak updates its own installations and pacman owns the Arch package.
+- The Flatpak is prepared for Flathub but not published there yet; until then it is installed from the bundle attached to each release.
 - AI quality and availability depend on the configured provider; AI grading is off by default and consumes provider tokens.
 - Scanned PDFs require external OCR.
 - PDF export uses a limited built-in font encoding; use JSON or Markdown for full Unicode.

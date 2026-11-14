@@ -32,6 +32,11 @@ jobs:
       ref: ${{ inputs.tag || github.event.release.tag_name }}
     secrets: inherit
 
+  flatpak:
+    uses: ./.github/workflows/build-flatpak.yml
+    with:
+      ref: ${{ inputs.tag || github.event.release.tag_name }}
+
   arch:
     uses: ./.github/workflows/build-arch.yml
     with:
@@ -74,7 +79,7 @@ jobs:
 
   publish:
     name: Publish release assets
-    needs: [windows, linux, arch, source]
+    needs: [windows, linux, flatpak, arch, source]
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -84,6 +89,17 @@ jobs:
           pattern: mnemo-*
           path: release
           merge-multiple: true
+
+      # Debian packages were discontinued in 1.2.6-rc.3. Flatpak replaces them
+      # as the package-managed Linux format, so a stray .deb in the merged
+      # artifact tree is a build-configuration error, not an extra asset.
+      - name: Ensure no Debian package is published
+        run: |
+          set -euo pipefail
+          if find release -type f -name '*.deb' -print -quit | grep -q .; then
+            echo "error: Debian packages are no longer built; remove the deb bundle target." >&2
+            exit 1
+          fi
 
       # A release-triggered run carries the tag in the event payload; a manual
       # recovery run passes it as an input. Everything downstream reads the

@@ -1,0 +1,77 @@
+name: Build Flatpak bundle
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: Git ref (usually a release tag) to build; empty uses the triggering ref
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  flatpak:
+    name: Linux Flatpak bundle
+    runs-on: ubuntu-24.04
+    # The GNOME runtime download plus a cold Rust build is the slow part. A
+    # stalled download or build fails instead of occupying a runner until
+    # GitHub's six-hour default timeout.
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref }}
+      # Same probed-mirror installation as the other Linux jobs; only the two
+      # Flatpak tools are needed here because the application is compiled
+      # inside the Flatpak SDK.
+      - name: Install Flatpak tooling
+        timeout-minutes: 10
+        run: bash scripts/ci/install-linux-deps.sh flatpak flatpak-builder
+      - name: Install runtime, SDK and SDK extensions
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          # The versions are pinned in packaging/flatpak/com.mnemo.study.yml;
+          # keep them in sync with the manifest.
+          flatpak remote-add --user --if-not-exists flathub \
+            https://dl.flathub.org/repo/flathub.flatpakrepo
+          flatpak install --user --noninteractive -y flathub \
+            org.gnome.Platform//51 \
+            org.gnome.Sdk//51 \
+            org.freedesktop.Sdk.Extension.rust-stable//26.08 \
+            org.freedesktop.Sdk.Extension.node22//26.08
+          flatpak --version
+          flatpak-builder --version
+      - name: Build Flatpak
+        timeout-minutes: 90
+        run: |
+          set -euo pipefail
+          flatpak-builder \
+            --user \
+            --force-clean \
+            --disable-rofiles-fuse \
+            --default-branch=stable \
+            --state-dir=flatpak-state \
+            --repo=flatpak-repo \
+            flatpak-build \
+            packaging/flatpak/com.mnemo.study.yml
+      - name: Create distributable bundle
+        run: |
+          set -euo pipefail
+          version="$(node -p "require('./package.json').version")"
+          # The branch must be "stable", the branch Flathub publishes, so an
+          # installation from this bundle is later replaced by the Flathub
+          # build of the same ref instead of living next to it.
+          flatpak build-bundle \
+            --runtime-repo=https://dl.flathub.org/repo/flathub.flatpakrepo \
+            flatpak-repo "Mnemo_${version}_x86_64.flatpak" com.mnemo.study stable
+          sha256sum ./*.flatpak
+      - name: Upload Flatpak bundle
+        uses: actions/upload-artifact@v7
+        with:
+          name: mnemo-flatpak-bundle
+          if-no-files-found: error
+          path: ./*.flatpak
