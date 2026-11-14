@@ -9,7 +9,7 @@ license=('MIT')
 depends=('webkit2gtk-4.1' 'gtk3' 'libsoup3' 'hicolor-icon-theme')
 makedepends=('nodejs' 'pnpm' 'rust' 'pkgconf')
 source=("mnemo-$pkgver.tar.gz")
-sha256sums=('2eec9c0be3abc52bee088b554bbdfd911f3908a3365e8cb6d9ed718485e45e3f')
+sha256sums=('b3a1deeb7aaa863906eccdd72c391984aeddab4e2e6f5c2aa9c24aa754568227')
 
 build() {
   cd "mnemo-$pkgver"
