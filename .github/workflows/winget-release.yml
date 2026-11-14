@@ -265,7 +265,14 @@ jobs:
           Write-Host "wingetcreate $($env:WINGETCREATE_VERSION) verified."
           "WINGETCREATE_DIR=$dir" | Add-Content -Path $env:GITHUB_ENV
           $dir | Add-Content -Path $env:GITHUB_PATH
-          & $exe --version
+          # wingetcreate has no --version switch: an unknown argument prints the
+          # command list and exits non-zero, which failed the whole job after the
+          # binary had already been verified. The `version` subcommand prints the
+          # build and returns zero.
+          & $exe version
+          if ($LASTEXITCODE -ne 0) {
+            throw "wingetcreate version failed with exit code $LASTEXITCODE."
+          }
 
       - name: Generate updated manifests
         shell: pwsh
