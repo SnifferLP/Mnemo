@@ -66,7 +66,7 @@ crashdumps/
 
 # Generated release artifacts
 *.AppImage
-*.deb
+*.flatpak
 *.rpm
 *.msi
 *.exe
@@ -77,6 +77,12 @@ crashdumps/
 /packaging/arch/*.tar.gz
 /packaging/arch/src/
 /packaging/arch/pkg/
+
+# Flatpak build output
+/.flatpak-builder/
+/packaging/flatpak/flatpak-build/
+/packaging/flatpak/flatpak-repo/
+/packaging/flatpak/flatpak-state/
 
 # Local tooling and design metadata
 .freebuff/
