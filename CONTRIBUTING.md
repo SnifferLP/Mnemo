@@ -83,6 +83,10 @@ English strings are the source keys. Add every new user-visible string to `src/i
 
 Source packages and binary packages are release artifacts and must stay out of Git. See [`docs/RELEASING.md`](docs/RELEASING.md) and [`packaging/arch/README.md`](packaging/arch/README.md). Do not change the version in only one manifest; keep `package.json`, Tauri, Cargo, PKGBUILD and documentation in sync.
 
+## Branching and releases
+
+Development happens directly on `main`. There are no long-lived `feature`, `fix`, `release` or `refactor` branches: commit features, bug fixes, refactoring and release preparation straight to `main`, and tag stable releases and prereleases from it. `main` is protected against deletion and force-pushes, so never rewrite published history.
+
 ## Pull requests
 
-Use the pull request template. Keep changes focused, explain user-visible behavior, list the checks you ran, and note any platform you could not test. By contributing, you agree that your contribution is licensed under the project's MIT License.
+Pull requests are optional and useful for larger or risky changes; the maintainer commits directly to `main` otherwise. Use the pull request template. Keep changes focused, explain user-visible behavior, list the checks you ran, and note any platform you could not test. By contributing, you agree that your contribution is licensed under the project's MIT License.

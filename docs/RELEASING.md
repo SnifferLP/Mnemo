@@ -288,7 +288,7 @@ The identifier is `SnifferLP.Mnemo`. Its `Publisher` field stays `The Mnemo Auth
 5. It downloads the installer, computes its SHA-256 and cross-checks it against the release's `SHA256SUMS` asset. A mismatch is fatal.
 6. It installs a pinned `wingetcreate` (`1.28.1.0`) and verifies the download's SHA-256.
 7. `wingetcreate update SnifferLP.Mnemo` rewrites only the installer URL, hash, version, release date and release-notes URL of the existing package, so publisher, license, tags, `InstallerType: nullsoft`, `Scope: user` and the `Silent: /S` switch from the first submission are preserved. The workflow then asserts every one of those fields is present in the output.
-8. `winget validate --manifest <dir>` validates the files; `wingetcreate submit` validates them again with the same engine and opens the pull request.
+8. `winget validate --manifest <dir>` validates the files; `wingetcreate submit` validates them again with the same engine and opens the pull request. The runner's App Installer is often older than the 1.28.0 schema headers wingetcreate writes, so validation reports "succeeded with warnings" and exits with `0x8A150028`. The workflow treats that specific warnings-only result as a pass, records it in the summary, and still fails on a real validation error.
 9. The run fails if no pull request URL is reported or if the pull request is not open afterwards. A failure also writes a `FAILED` section to the run summary, so a broken run is never summarized as a success.
 
 Pull requests are titled `Update: SnifferLP.Mnemo to <version>`; the first submission used `New package: … version 1.2.5`.
