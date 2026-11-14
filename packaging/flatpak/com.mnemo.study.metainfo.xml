@@ -57,11 +57,12 @@
   </screenshots>
 
   <releases>
-    <release version="1.2.6-rc.3" date="2026-11-14">
+    <release version="1.2.6" date="2026-11-14">
       <description>
         <p>
-          First release with Flatpak distribution. The Flatpak replaces the
-          Debian package; the AppImage and the Windows installer are unchanged.
+          First stable release with Flatpak distribution. The Flatpak replaces
+          the Debian package; the AppImage and the Windows installer are
+          unchanged.
         </p>
         <p>
           Updates for the Flatpak are delivered by Flatpak itself, so the in-app
