@@ -325,9 +325,17 @@ jobs:
             throw "Expected three manifest files in $dir, found $($files.Count)."
           }
 
-          $installer = Get-Content (Join-Path $dir "$($env:PACKAGE_ID).installer.yaml") -Raw
-          $versionManifest = Get-Content (Join-Path $dir "$($env:PACKAGE_ID).yaml") -Raw
-          $locale = Get-Content (Join-Path $dir "$($env:PACKAGE_ID).locale.en-US.yaml") -Raw
+          # wingetcreate writes the manifests on Windows, so every line ends in
+          # CRLF. The checks below anchor with ^ and $, and in .NET $ matches
+          # before \n only, so an unnormalized \r keeps every anchored pattern
+          # from matching. Normalize once and then assert on the text.
+          function Read-Manifest([string]$path) {
+            return (Get-Content -Path $path -Raw).Replace("`r`n", "`n")
+          }
+
+          $installer = Read-Manifest (Join-Path $dir "$($env:PACKAGE_ID).installer.yaml")
+          $versionManifest = Read-Manifest (Join-Path $dir "$($env:PACKAGE_ID).yaml")
+          $locale = Read-Manifest (Join-Path $dir "$($env:PACKAGE_ID).locale.en-US.yaml")
 
           $checks = @(
             @{ Name = 'package identifier'; Text = $versionManifest; Pattern = "^PackageIdentifier: $([regex]::Escape($env:PACKAGE_ID))$" },
