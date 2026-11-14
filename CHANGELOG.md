@@ -2,6 +2,38 @@
 
 All notable changes to Mnemo are documented here. The project follows [Semantic Versioning](https://semver.org/).
 
+## [1.2.6] - 2026-11-14
+
+Stable release of `1.2.6`. It combines the three release candidates: the per-set reset no longer loses learning history, the Flatpak replaces the Debian package, and stable GitHub Releases are mirrored to Windows Package Manager automatically. Study sets, progress, review history and settings are kept.
+
+### Fixed
+
+- **Resetting one study set no longer wipes global learning statistics.** “Reset progress” deleted every review the set had recorded, and the dashboard's learned-cards-today number, the daily chart, the weekly accuracy and the streak are all calculated from those reviews. Resetting a single set therefore erased the day's global activity, including the activity of every other set. A reset now clears only the set's own progress, its mastered-card count, its “Last 30 Days” view and its test history; the learned-cards total, dashboard, streak, global statistics and all other sets stay exactly as they were.
+- **Resetting a set keeps its learning history.** The reset from `1.2.6-rc.1` stopped wiping global statistics, but it also hid the set's own recorded reviews, so its “Last 30 Days” chart went blank. Reviews and sessions are history and are now never hidden by a reset: the chart, review count, accuracy and study time of the set stay readable, while current progress, mastered cards, per-card counters and test results are reset as before. Nothing is reconstructed or approximated — the recorded events stay in place.
+- **The dashboard's “Continue where you left off” section lists every set, ordered by when it was opened.** The section used to show only sets with cards due, ordered by how many cards were due, so a set dropped out of it as soon as nothing was due and came back later; with two sets that looked like a set randomly disappearing. It now lists all active sets, most recently opened first.
+- **Opening a set is remembered.** Sets record when they were opened, persisted in the database instead of component state, so the order is the same after navigating away and after restarting the app. Creating, deleting, archiving and restoring a set is reflected immediately.
+- **“Tutor” is now “KI” / “KI-Assistenz” throughout the interface, in German and English.** The dashboard button reads “KI fragen”, the assistant page and its settings refer to the “KI-Assistenz”, and the AI feedback badge on the study page says “KI-Assistenz:”. Only user-facing wording changed; the assistant, its modes and the AI integration behave exactly as before.
+
+### Changed
+
+- **Linux is distributed as Flatpak and AppImage; Debian packages are discontinued.** The `.deb` is no longer built, no longer attached to releases and no longer documented. Flatpak is now the package-managed Linux format and keeps the AppImage as the portable one.
+- **A Flatpak build of Mnemo exists** under the application ID `com.mnemo.study`, built against the GNOME 51 runtime with the Rust and Node.js SDK extensions, and packaged per Flathub conventions: AppStream metadata, an application-ID desktop entry, hicolor icons, license notices and a manifest whose crates and npm packages are pinned by checksum for offline, reproducible builds.
+- **Updates follow the installation format.** The Flatpak detects its sandbox and leaves updating to Flatpak (`flatpak update com.mnemo.study`, a software centre or the Flatpak background updater) instead of the Tauri updater, so no AppImage is ever downloaded into a sandbox and there is only one update notification. Windows and AppImage builds keep the existing signed in-app updater.
+
+### Added
+
+- Flatpak manifest, Flathub submission files (`flathub.json`, metainfo, icon, pinned `cargo-sources.json` and `node-sources.json`) and a dedicated `build-flatpak.yml` workflow that builds the bundle in CI and attaches it to every release. The Flathub submission itself still requires a pull request and reviewer approval, so Mnemo is not yet available on Flathub.
+- Documentation of the update mechanism per distribution format in the README and `docs/RELEASING.md`.
+- Windows Package Manager automation: publishing a stable GitHub Release now updates `SnifferLP.Mnemo` in `microsoft/winget-pkgs` with a pull request generated from the release's installer and SHA-256 checksum.
+
+### Removed
+
+- The Debian bundle target, the `.deb` build step and the `.deb` release asset.
+
+### Internal
+
+- A reset now only marks test results as reset-scoped; the corresponding review and session flags were removed again by a migration that clears them and drops the columns, so existing databases keep their history. Sets gain a `last_opened_at` column, updated when a set is opened and used to order the dashboard lists with a deterministic tie-breaker.
+
 ## [1.2.6-rc.3] - 2026-11-14
 
 Third release candidate for `1.2.6`, replacing the Debian package with a Flatpak. Study sets, progress, review history and settings are kept.
