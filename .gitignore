@@ -102,3 +102,6 @@ Desktop.ini
 # Local screenshots and debug exports
 /.screenshots/
 /debug/
+
+# Flatpak manifest generated for checkout builds
+/packaging/flatpak/com.mnemo.study.ci.yml

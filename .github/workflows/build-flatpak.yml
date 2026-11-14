@@ -45,6 +45,14 @@ jobs:
             org.freedesktop.Sdk.Extension.node22//26.08
           flatpak --version
           flatpak-builder --version
+      # The committed manifest pins the release tag, which is what Flathub
+      # builds. That tag cannot exist before the release it describes, so CI and
+      # the release build compile the checked-out tree instead
+      # (scripts/ci/make-flatpak-ci-manifest.py). Only the source entry changes;
+      # runtime, extensions, permissions and the pinned crate and npm tarballs
+      # stay exactly as reviewed.
+      - name: Prepare the Flatpak manifest
+        run: python3 scripts/ci/make-flatpak-ci-manifest.py
       - name: Build Flatpak
         timeout-minutes: 90
         run: |
@@ -57,7 +65,7 @@ jobs:
             --state-dir=flatpak-state \
             --repo=flatpak-repo \
             flatpak-build \
-            packaging/flatpak/com.mnemo.study.yml
+            packaging/flatpak/com.mnemo.study.ci.yml
       - name: Create distributable bundle
         run: |
           set -euo pipefail
