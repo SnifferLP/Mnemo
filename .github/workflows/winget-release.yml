@@ -381,8 +381,24 @@ jobs:
           winget validate --manifest $env:MANIFEST_DIR --disable-interactivity *> $log
           $code = $LASTEXITCODE
           Get-Content $log | Write-Host
-          if ($code -ne 0) { throw "winget validate failed with exit code $code." }
-          "VALIDATION=winget validate passed" | Add-Content -Path $env:GITHUB_ENV
+          if ($code -eq 0) {
+            "VALIDATION=winget validate passed" | Add-Content -Path $env:GITHUB_ENV
+            exit 0
+          }
+          # winget's CLI exits with 0x8A150028 (as a signed int, -1978335192)
+          # when the manifests are valid but carry warnings. The usual warning is
+          # the schema header: the runner's App Installer is older than the
+          # wingetcreate release that wrote the 1.28.0 headers. Manifest errors
+          # are reported as a failed validation instead, and wingetcreate
+          # revalidates with its own WinGetUtil during submit, so warnings alone
+          # must not fail the release.
+          $text = Get-Content $log -Raw
+          if ($code -eq -1978335192 -and $text -match 'Manifest validation succeeded with warnings') {
+            Write-Warning 'winget validate reported warnings only; recorded in the run summary.'
+            "VALIDATION=winget validate passed with warnings" | Add-Content -Path $env:GITHUB_ENV
+            exit 0
+          }
+          throw "winget validate failed with exit code $code."
 
       - name: Upload generated manifests
         if: always()
